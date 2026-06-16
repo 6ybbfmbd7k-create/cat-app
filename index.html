@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>🐱 主子日常全方位記錄</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
         body { background: #f9fafb; padding: 15px; display: flex; justify-content: center; -webkit-tap-highlight-color: transparent; }
@@ -29,9 +30,14 @@
         .btn-submit { padding: 8px 16px; border: none; border-radius: 8px; color: white; font-weight: bold; font-size: 14px; cursor: pointer; }
         .btn-feed { background: #fb923c; }
         .btn-poop { background: #78350f; }
+        
+        /* 統計圖表新樣式 */
+        .chart-section { padding: 12px; border-top: 1px solid #f3f4f6; background: #fdfdfd; }
+        .chart-container { background: white; border: 1px solid #e5e7eb; padding: 10px; border-radius: 12px; position: relative; width: 100%; height: 180px; }
+
         .history-section { border-top: 1px solid #f3f4f6; padding: 12px; }
         .history-title { font-size: 12px; font-weight: bold; color: #9ca3af; margin-bottom: 8px; }
-        .log-list { max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+        .log-list { max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
         .log-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px; border-radius: 12px; border: 1px solid #f3f4f6; }
         .log-left { display: flex; align-items: center; gap: 8px; }
         .dot { width: 6px; height: 6px; border-radius: 50%; }
@@ -63,22 +69,152 @@
                 <div class="flex-row" id="form-dynamic-inputs" style="align-items:center;margin-top:4px;"></div>
             </form>
         </div>
-        <div class="history-section"><div class="history-title">歷史綜合紀錄</div><div class="log-list" id="log-list-area"></div></div>
+
+        <div class="chart-section">
+            <div class="history-title">📊 最近 7 日健康統計</div>
+            <div class="chart-container">
+                <canvas id="healthChart"></canvas>
+            </div>
+        </div>
+
+        <div class="history-section">
+            <div class="history-title">歷史綜合紀錄</div>
+            <div class="log-list" id="log-list-area"></div>
+        </div>
     </div>
+
     <script>
         let catProfile=JSON.parse(localStorage.getItem('cat_profile'))||{name:"Mochi",weight:"4.5"};
-        let logs=JSON.parse(localStorage.getItem('cat_all_logs'))||[{id:1,date:"2026-06-17",time:"01:30",category:"feeding",type:"乾糧",detail:"30g"}];
-        let activeTab='feeding';let isEditingProfile=false;
-        function initDateTime(){document.getElementById('custom-date').value=new Date().toISOString().split('T')[0];document.getElementById('custom-time').value=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:false})}
-        function renderProfile(){const e=document.getElementById('profile-area');isEditingProfile?e.innerHTML=`<div class="profile-card"><form class="form-edit" onsubmit="saveProfile(event)"><div class="flex-row"><input type="text" id="edit-name" class="input-text" value="${catProfile.name}"><input type="number" step="0.1" id="edit-weight" class="input-text" value="${catProfile.weight}"></div><div class="flex-row" style="justify-content:flex-end;gap:4px"><button type="button" class="btn-edit" onclick="toggleEditProfile(false)">取消</button><button type="submit" class="btn-edit" style="background:#fb923c;color:white;border:none">儲存</button></div></form></div>`:e.innerHTML=`<div class="profile-card"><div class="profile-info"><div class="avatar">🐱</div><div><div class="profile-name">${catProfile.name}</div><div class="profile-weight">體重: ${catProfile.weight} kg</div></div></div><button class="btn-edit" onclick="toggleEditProfile(true)">✏️ 編輯</button></div>`}
+        
+        // 預設幾條過去幾日的模擬數據，等圖表一開就有嘢睇
+        let logs=JSON.parse(localStorage.getItem('cat_all_logs'))||[
+            {id:1,date:getOffsetDate(0),time:"08:30",category:"feeding",type:"乾糧",detail:"35g"},
+            {id:2,date:getOffsetDate(0),time:"12:00",category:"poop",type:"便便 💩",detail:"正常 🪵"},
+            {id:3,date:getOffsetDate(-1),time:"09:00",category:"feeding",type:"濕糧",detail:"40g"},
+            {id:4,date:getOffsetDate(-1),time:"15:00",category:"poop",type:"尿尿 💧",detail:"正常 🪵"},
+            {id:5,date:getOffsetDate(-2),time:"08:15",category:"feeding",type:"乾糧",detail:"30g"},
+            {id:6,date:getOffsetDate(-3),time:"19:00",category:"feeding",type:"乾糧",detail:"45g"}
+        ];
+        
+        let activeTab='feeding';let isEditingProfile=false;let myChart = null;
+
+        function getOffsetDate(offset) {
+            const d = new Date();
+            d.setDate(d.getDate() + offset);
+            return d.toISOString().split('T')[0];
+        }
+
+        function initDateTime(){
+            document.getElementById('custom-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('custom-time').value = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:false});
+        }
+
+        function renderProfile(){
+            const e=document.getElementById('profile-area');
+            isEditingProfile?e.innerHTML=`<div class="profile-card"><form class="form-edit" onsubmit="saveProfile(event)"><div class="flex-row"><input type="text" id="edit-name" class="input-text" value="${catProfile.name}"><input type="number" step="0.1" id="edit-weight" class="input-text" value="${catProfile.weight}"></div><div class="flex-row" style="justify-content:flex-end;gap:4px"><button type="button" class="btn-edit" onclick="toggleEditProfile(false)">取消</button><button type="submit" class="btn-edit" style="background:#fb923c;color:white;border:none">儲存</button></div></form></div>`:e.innerHTML=`<div class="profile-card"><div class="profile-info"><div class="avatar">🐱</div><div><div class="profile-name">${catProfile.name}</div><div class="profile-weight">體重: ${catProfile.weight} kg</div></div></div><button class="btn-edit" onclick="toggleEditProfile(true)">✏️ 編輯</button></div>`
+        }
+
         function toggleEditProfile(e){isEditingProfile=e,renderProfile()}
-        function saveProfile(e){e.preventDefault();const t=document.getElementById('edit-name').value.trim(),n=document.getElementById('edit-weight').value.trim();if(t&&n){catProfile={name:t,weight:n};localStorage.setItem('cat_profile',JSON.stringify(catProfile));isEditingProfile=false;renderProfile()}}
-        function switchTab(e){activeTab=e;const t=document.getElementById('tab-feed'),n=document.getElementById('tab-poop');if("feeding"===e){t.className="tab-btn active-feed";n.className="tab-btn"}else{t.className="tab-btn";n.className="tab-btn active-poop"}renderInputs()}
-        function renderInputs(){const e=document.getElementById('form-dynamic-inputs');if("feeding"===activeTab){e.innerHTML=`<select id="food-type" class="select-box" style="width:80px"><option>乾糧</option><option>濕糧</option><option>零食</option><option>飲水</option></select><input type="text" id="food-amount" placeholder="份量 (e.g. 40g)" class="input-text" style="flex:1"><button type="submit" class="btn-submit btn-feed">加</button>`}else{e.innerHTML=`<select id="poop-type" class="select-box" style="flex:1"><option>便便 💩</option><option>尿尿 💧</option></select><select id="poop-status" class="select-box" style="flex:1"><option>正常 🪵</option><option>肚痾/偏軟 🌊</option><option>太硬/便秘 🪨</option></select><button type="submit" class="btn-submit btn-poop">加</button>`}}
-        function renderLogs(){const e=document.getElementById('log-list-area');if(0===logs.length){e.innerHTML=`<p class="empty-text">未有任何紀錄</p>`;return}e.innerHTML=logs.map(e=>`<div class="log-item"><div class="log-left"><span class="dot ${"feeding"===e.category?"dot-feed":"dot-poop"}"></span><div><div class="log-title">${e.type}</div><div class="log-time">${e.date} @ ${e.time}</div></div></div><div style="display:flex;align-items:center;gap:8px"><span class="log-detail ${"feeding"===e.category?"text-feed":"text-poop"}">${e.detail}</span><button class="btn-del" onclick="deleteLog(${e.id})">🗑️</button></div></div>`).join("")}
-        function addLog(e){e.preventDefault();const t=document.getElementById('custom-date').value,n=document.getElementById('custom-time').value;let a={id:Date.now(),date:t,time:n,category:activeTab,type:"",detail:""};if("feeding"===activeTab){const e=document.getElementById('food-amount').value.trim();if(!e)return;a.type=document.getElementById('food-type').value,a.detail=e}else{a.type=document.getElementById('poop-type').value,a.detail=document.getElementById('poop-status').value}logs.unshift(a);logs.sort((e,t)=>new Date(`${t.date}T${t.time}`)-new Date(`${e.date}T${e.time}`));localStorage.setItem('cat_all_logs',JSON.stringify(logs));renderLogs();initDateTime();if("feeding"===activeTab)document.getElementById('food-amount').value=""}
-        function deleteLog(e){if(confirm("確定要刪除呢條紀錄？")){logs=logs.filter(t=>t.id!==e);localStorage.setItem('cat_all_logs',JSON.stringify(logs));renderLogs()}}
-        renderProfile();switchTab("feeding");renderLogs();initDateTime();
+        
+        function saveProfile(e){
+            e.preventDefault();const t=document.getElementById('edit-name').value.trim(),n=document.getElementById('edit-weight').value.trim();
+            if(t&&n){catProfile={name:t,weight:n};localStorage.setItem('cat_profile',JSON.stringify(catProfile));isEditingProfile=false;renderProfile()}
+        }
+
+        function switchTab(e){
+            activeTab=e;const t=document.getElementById('tab-feed'),n=document.getElementById('tab-poop');
+            if("feeding"===e){t.className="tab-btn active-feed";n.className="tab-btn"}else{t.className="tab-btn";n.className="tab-btn active-poop"}renderInputs()
+        }
+
+        function renderInputs(){
+            const e=document.getElementById('form-dynamic-inputs');
+            if("feeding"===activeTab){e.innerHTML=`<select id="food-type" class="select-box" style="width:80px"><option>乾糧</option><option>濕糧</option><option>零食</option><option>飲水</option></select><input type="text" id="food-amount" placeholder="份量 (e.g. 40g)" class="input-text" style="flex:1"><button type="submit" class="btn-submit btn-feed">加</button>`}
+            else{e.innerHTML=`<select id="poop-type" class="select-box" style="flex:1"><option>便便 💩</option><option>尿尿 💧</option></select><select id="poop-status" class="select-box" style="flex:1"><option>正常 🪵</option><option>肚痾/偏軟 🌊</option><option>太硬/便秘 🪨</option></select><button type="submit" class="btn-submit btn-poop">加</button>`}
+        }
+
+        function renderLogs(){
+            const e=document.getElementById('log-list-area');
+            if(0===logs.length){e.innerHTML=`<p class="empty-text">未有任何紀錄</p>`;return}
+            e.innerHTML=logs.map(e=>`<div class="log-item"><div class="log-left"><span class="dot ${"feeding"===e.category?"dot-feed":"dot-poop"}"></span><div><div class="log-title">${e.type}</div><div class="log-time">${e.date} @ ${e.time}</div></div></div><div style="display:flex;align-items:center;gap:8px"><span class="log-detail ${"feeding"===e.category?"text-feed":"text-poop"}">${e.detail}</span><button class="btn-del" onclick="deleteLog(${e.id})">🗑️</button></div></div>`).join("")
+        }
+
+        // 📊 核心計算：提取最近 7 天的數據生成圖表
+        function updateChart() {
+            const last7Days = [];
+            for (let i = 6; i >= 0; i--) {
+                last7Days.push(getOffsetDate(-i));
+            }
+
+            const feedCounts = Array(7).fill(0);
+            const poopCounts = Array(7).fill(0);
+
+            logs.forEach(log => {
+                const dayIndex = last7Days.indexOf(log.date);
+                if (dayIndex !== -1) {
+                    if (log.category === 'feeding') {
+                        feedCounts[dayIndex] += 1; // 計算餵食次數
+                    } else {
+                        poopCounts[dayIndex] += 1; // 計算排便次數
+                    }
+                }
+            });
+
+            // 格式化日期標籤 (只要月份和日期 e.g. 06-17)
+            const labels = last7Days.map(dateStr => dateStr.substring(5));
+
+            if (myChart) {
+                // 如果圖表已存在，更新數據
+                myChart.data.datasets[0].data = feedCounts;
+                myChart.data.datasets[1].data = poopCounts;
+                myChart.update();
+            } else {
+                // 第一次初始化圖表
+                const ctx = document.getElementById('healthChart').getContext('2d');
+                myChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            { label: '🍖 餵食', data: feedCounts, backgroundColor: '#fb923c', borderRadius: 4 },
+                            { label: '💩 排泄', data: poopCounts, backgroundColor: '#78350f', borderRadius: 4 }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10 } } },
+                            x: { ticks: { font: { size: 10 } } }
+                        },
+                        plugins: {
+                            legend: { labels: { boxWidth: 12, font: { size: 11 } } }
+                        }
+                    }
+                });
+            }
+        }
+
+        function addLog(e){
+            e.preventDefault();const t=document.getElementById('custom-date').value,n=document.getElementById('custom-time').value;
+            let a={id:Date.now(),date:t,time:n,category:activeTab,type:"",detail:""};
+            if("feeding"===activeTab){
+                const e=document.getElementById('food-amount').value.trim();if(!e)return;
+                a.type=document.getElementById('food-type').value,a.detail=e
+            }else{a.type=document.getElementById('poop-type').value,a.detail=document.getElementById('poop-status').value}
+            logs.unshift(a);logs.sort((e,t)=>new Date(`${t.date}T${t.time}`)-new Date(`${e.date}T${e.time}`));
+            localStorage.setItem('cat_all_logs', JSON.stringify(logs));
+            renderLogs();updateChart();initDateTime();
+            if("feeding"===activeTab)document.getElementById('food-amount').value=""
+        }
+
+        function deleteLog(e){
+            if(confirm("確定要刪除呢條紀錄？")){
+                logs=logs.filter(t=>t.id!==e);localStorage.setItem('cat_all_logs',JSON.stringify(logs));
+                renderLogs();updateChart();
+            }
+        }
+
+        renderProfile();switchTab("feeding");renderLogs();updateChart();initDateTime();
     </script>
 </body>
 </html>
