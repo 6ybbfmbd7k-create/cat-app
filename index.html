@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🐱 主子日常全方位記錄</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+        body { background: #f9fafb; padding: 15px; display: flex; justify-content: center; -webkit-tap-highlight-color: transparent; }
+        .app-container { width: 100%; max-width: 400px; background: white; border-radius: 16px; border: 1px solid #f3f4f6; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .header { background: #fb923c; color: white; text-align: center; padding: 16px; font-weight: bold; font-size: 20px; }
+        .profile-card { background: #fff7ed; margin: 12px; padding: 12px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #ffedd5; }
+        .profile-info { display: flex; align-items: center; gap: 12px; }
+        .avatar { width: 48px; height: 48px; background: #fed7aa; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+        .profile-name { font-size: 16px; font-weight: bold; color: #1f2937; }
+        .profile-weight { font-size: 12px; color: #6b7280; }
+        .btn-edit { background: white; color: #ea580c; border: 1px solid #fed7aa; padding: 4px 12px; border-radius: 999px; font-size: 12px; cursor: pointer; }
+        .form-edit { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+        .flex-row { display: flex; gap: 8px; }
+        .input-text { width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; background: white; }
+        .tabs { display: flex; gap: 8px; padding: 0 12px; margin-bottom: 8px; }
+        .tab-btn { flex: 1; padding: 10px; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; background: #f3f4f6; color: #4b5563; }
+        .tab-btn.active-feed { background: #fb923c; color: white; }
+        .tab-btn.active-poop { background: #78350f; color: white; }
+        .form-section { padding: 0 12px 12px 12px; }
+        .log-form { background: #f9fafb; padding: 12px; border-radius: 12px; display: flex; flex-direction: column; gap: 8px; }
+        .label-text { font-size: 10px; color: #9ca3af; display: block; margin-bottom: 2px; }
+        .select-box { padding: 8px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; background: white; }
+        .btn-submit { padding: 8px 16px; border: none; border-radius: 8px; color: white; font-weight: bold; font-size: 14px; cursor: pointer; }
+        .btn-feed { background: #fb923c; }
+        .btn-poop { background: #78350f; }
+        .history-section { border-top: 1px solid #f3f4f6; padding: 12px; }
+        .history-title { font-size: 12px; font-weight: bold; color: #9ca3af; margin-bottom: 8px; }
+        .log-list { max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+        .log-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px; border-radius: 12px; border: 1px solid #f3f4f6; }
+        .log-left { display: flex; align-items: center; gap: 8px; }
+        .dot { width: 6px; height: 6px; border-radius: 50%; }
+        .dot-feed { background: #fb923c; }
+        .dot-poop { background: #78350f; }
+        .log-title { font-size: 13px; font-weight: bold; color: #1f2937; }
+        .log-time { font-size: 10px; color: #9ca3af; }
+        .log-detail { font-size: 13px; font-weight: bold; }
+        .text-feed { color: #f97316; }
+        .text-poop { color: #78350f; }
+        .btn-del { color: #d1d5db; border: none; background: none; font-size: 12px; cursor: pointer; padding: 4px; }
+        .empty-text { text-align: center; font-size: 13px; color: #9ca3af; padding: 16px 0; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="header">🐱 主子日常全方位記錄</div>
+        <div id="profile-area"></div>
+        <div class="tabs">
+            <button id="tab-feed" class="tab-btn active-feed" onclick="switchTab('feeding')">🍖 餵食紀錄</button>
+            <button id="tab-poop" class="tab-btn" onclick="switchTab('poop')">💩 鏟屎健康</button>
+        </div>
+        <div class="form-section">
+            <form class="log-form" onsubmit="addLog(event)">
+                <div class="flex-row">
+                    <div style="flex:1"><label class="label-text">自訂日期</label><input type="date" id="custom-date" class="input-text"></div>
+                    <div style="width:35%"><label class="label-text">時間</label><input type="time" id="custom-time" class="input-text"></div>
+                </div>
+                <div class="flex-row" id="form-dynamic-inputs" style="align-items:center;margin-top:4px;"></div>
+            </form>
+        </div>
+        <div class="history-section"><div class="history-title">歷史綜合紀錄</div><div class="log-list" id="log-list-area"></div></div>
+    </div>
+    <script>
+        let catProfile=JSON.parse(localStorage.getItem('cat_profile'))||{name:"Mochi",weight:"4.5"};
+        let logs=JSON.parse(localStorage.getItem('cat_all_logs'))||[{id:1,date:"2026-06-17",time:"01:30",category:"feeding",type:"乾糧",detail:"30g"}];
+        let activeTab='feeding';let isEditingProfile=false;
+        function initDateTime(){document.getElementById('custom-date').value=new Date().toISOString().split('T')[0];document.getElementById('custom-time').value=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:false})}
+        function renderProfile(){const e=document.getElementById('profile-area');isEditingProfile?e.innerHTML=`<div class="profile-card"><form class="form-edit" onsubmit="saveProfile(event)"><div class="flex-row"><input type="text" id="edit-name" class="input-text" value="${catProfile.name}"><input type="number" step="0.1" id="edit-weight" class="input-text" value="${catProfile.weight}"></div><div class="flex-row" style="justify-content:flex-end;gap:4px"><button type="button" class="btn-edit" onclick="toggleEditProfile(false)">取消</button><button type="submit" class="btn-edit" style="background:#fb923c;color:white;border:none">儲存</button></div></form></div>`:e.innerHTML=`<div class="profile-card"><div class="profile-info"><div class="avatar">🐱</div><div><div class="profile-name">${catProfile.name}</div><div class="profile-weight">體重: ${catProfile.weight} kg</div></div></div><button class="btn-edit" onclick="toggleEditProfile(true)">✏️ 編輯</button></div>`}
+        function toggleEditProfile(e){isEditingProfile=e,renderProfile()}
+        function saveProfile(e){e.preventDefault();const t=document.getElementById('edit-name').value.trim(),n=document.getElementById('edit-weight').value.trim();if(t&&n){catProfile={name:t,weight:n};localStorage.setItem('cat_profile',JSON.stringify(catProfile));isEditingProfile=false;renderProfile()}}
+        function switchTab(e){activeTab=e;const t=document.getElementById('tab-feed'),n=document.getElementById('tab-poop');if("feeding"===e){t.className="tab-btn active-feed";n.className="tab-btn"}else{t.className="tab-btn";n.className="tab-btn active-poop"}renderInputs()}
+        function renderInputs(){const e=document.getElementById('form-dynamic-inputs');if("feeding"===activeTab){e.innerHTML=`<select id="food-type" class="select-box" style="width:80px"><option>乾糧</option><option>濕糧</option><option>零食</option><option>飲水</option></select><input type="text" id="food-amount" placeholder="份量 (e.g. 40g)" class="input-text" style="flex:1"><button type="submit" class="btn-submit btn-feed">加</button>`}else{e.innerHTML=`<select id="poop-type" class="select-box" style="flex:1"><option>便便 💩</option><option>尿尿 💧</option></select><select id="poop-status" class="select-box" style="flex:1"><option>正常 🪵</option><option>肚痾/偏軟 🌊</option><option>太硬/便秘 🪨</option></select><button type="submit" class="btn-submit btn-poop">加</button>`}}
+        function renderLogs(){const e=document.getElementById('log-list-area');if(0===logs.length){e.innerHTML=`<p class="empty-text">未有任何紀錄</p>`;return}e.innerHTML=logs.map(e=>`<div class="log-item"><div class="log-left"><span class="dot ${"feeding"===e.category?"dot-feed":"dot-poop"}"></span><div><div class="log-title">${e.type}</div><div class="log-time">${e.date} @ ${e.time}</div></div></div><div style="display:flex;align-items:center;gap:8px"><span class="log-detail ${"feeding"===e.category?"text-feed":"text-poop"}">${e.detail}</span><button class="btn-del" onclick="deleteLog(${e.id})">🗑️</button></div></div>`).join("")}
+        function addLog(e){e.preventDefault();const t=document.getElementById('custom-date').value,n=document.getElementById('custom-time').value;let a={id:Date.now(),date:t,time:n,category:activeTab,type:"",detail:""};if("feeding"===activeTab){const e=document.getElementById('food-amount').value.trim();if(!e)return;a.type=document.getElementById('food-type').value,a.detail=e}else{a.type=document.getElementById('poop-type').value,a.detail=document.getElementById('poop-status').value}logs.unshift(a);logs.sort((e,t)=>new Date(`${t.date}T${t.time}`)-new Date(`${e.date}T${e.time}`));localStorage.setItem('cat_all_logs',JSON.stringify(logs));renderLogs();initDateTime();if("feeding"===activeTab)document.getElementById('food-amount').value=""}
+        function deleteLog(e){if(confirm("確定要刪除呢條紀錄？")){logs=logs.filter(t=>t.id!==e);localStorage.setItem('cat_all_logs',JSON.stringify(logs));renderLogs()}}
+        renderProfile();switchTab("feeding");renderLogs();initDateTime();
+    </script>
+</body>
+</html>
