@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🐱 Liz 日常全方位記錄</title>
+    <title>🐱 Liz 日常全方位記錄 (雲端完美同步版)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
@@ -49,12 +49,12 @@
         .text-weight { color: #e11d48; }
         .btn-del { color: #d1d5db; border: none; background: none; font-size: 12px; cursor: pointer; padding: 4px; }
         .empty-text { text-align: center; font-size: 13px; color: #9ca3af; padding: 16px 0; }
-        .cloud-status { text-align: center; font-size: 11px; color: #22c55e; padding: 4px; background: #f0fdf4; font-weight: bold; }
+        .cloud-status { text-align: center; font-size: 11px; color: #9ca3af; padding: 4px; background: #f3f4f6; }
     </style>
 </head>
 <body>
     <div class="app-container">
-        <div class="cloud-status">📱 本地高效安全模式</div>
+        <div id="cloud-status-bar" class="cloud-status">✨ 初始化同步系統...</div>
         <div class="header">🐱 Liz 日常全方位記錄</div>
         <div class="profile-card">
             <div class="profile-info">
@@ -98,16 +98,42 @@
     </div>
 
     <script>
-        // 徹底移除不穩定的雲端代碼，確保 iPhone 主畫面 100% 絕對不會被安全機制鎖死
+        // ⚠️ 請在此處填入你的 Google Apps Script 網址 ⚠️
+        const API_URL = https://script.google.com/macros/s/AKfycbyWrSfnsINj_a3rLwSW00DJHsncJu3aVfiuLE7thdahPpC1bHkU0LynIMbMtMEynIWE/exec; 
+
         let logs = JSON.parse(localStorage.getItem('cat_all_logs')) || [];
         let activeTab = 'feeding';
         let myChart = null;
 
+        function updateStatus(text) { document.getElementById('cloud-status-bar').innerText = text; }
         function getOffsetDate(offset) { const d = new Date(); d.setDate(d.getDate() + offset); return d.toISOString().split('T')[0]; }
         
         function initDateTime() {
             document.getElementById('custom-date').value = new Date().toISOString().split('T')[0];
             document.getElementById('custom-time').value = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:false});
+        }
+
+        // 從 Google 雲端拉取所有資料，實現全自動同步
+        async function fetchLogs() {
+            if(!API_URL || API_URL.includes("換成你") || API_URL === "") {
+                updateStatus("📱 目前處於本地離線儲存模式");
+                return;
+            }
+            try {
+                updateStatus("☁️ 正在與雲端同步...");
+                let response = await fetch(API_URL);
+                let cloudLogs = await response.json();
+                if(cloudLogs && cloudLogs.length > 0) {
+                    logs = cloudLogs;
+                    localStorage.setItem('cat_all_logs', JSON.stringify(logs));
+                    renderLogs(); updateChart(); updateWeightDisplay();
+                    updateStatus("🟢 雲端同步完成 (數據已對齊)");
+                } else {
+                    updateStatus("🟢 雲端已連線 (目前無數據)");
+                }
+            } catch (e) { 
+                updateStatus("🟡 雲端連線不穩，已啟動本地保護");
+            }
         }
 
         function switchTab(tabName) {
@@ -186,7 +212,7 @@
             }
         }
 
-        function addLog(e) {
+        async function addLog(e) {
             e.preventDefault(); 
             const t = document.getElementById('custom-date').value;
             const n = document.getElementById('custom-time').value;
@@ -206,17 +232,31 @@
             localStorage.setItem('cat_all_logs', JSON.stringify(logs));
             renderLogs(); updateChart(); updateWeightDisplay();
             initDateTime(); switchTab(activeTab);
+
+            // 即時同步至雲端 Sheet
+            if(!API_URL || API_URL.includes("換成你") || API_URL === "") return;
+            try {
+                updateStatus("☁️ 正在同步新紀錄到雲端...");
+                await fetch(API_URL, { method: "POST", body: JSON.stringify(a) });
+                updateStatus("🟢 雲端同步完成");
+            } catch (err) {
+                updateStatus("🟡 資料已存於本地，等待恢復連線");
+            }
         }
 
-        function deleteLog(id) {
+        async function deleteLog(id) {
             if (confirm("確定要刪除呢條紀錄？")) {
                 logs = logs.filter(function(t) { return t.id !== id; });
                 localStorage.setItem('cat_all_logs', JSON.stringify(logs));
                 renderLogs(); updateChart(); updateWeightDisplay();
+                
+                if(!API_URL || API_URL.includes("換成你") || API_URL === "") return;
+                try { await fetch(API_URL, { method: "POST", body: JSON.stringify({action: "delete", id: id}) }); } catch (e) {}
             }
         }
 
-        initDateTime(); switchTab("feeding"); renderLogs(); updateChart(); updateWeightDisplay();
+        // 啟動初始化
+        initDateTime(); switchTab("feeding"); renderLogs(); updateChart(); updateWeightDisplay(); fetchLogs();
     </script>
 </body>
 </html>
