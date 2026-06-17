@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🐱 Liz 日常全方位記錄 (終極體重同步版)</title>
+    <title>🐱 Liz 日常全方位記錄 (解鎖復活版)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
@@ -15,8 +15,8 @@
         .avatar { width: 48px; height: 48px; background: #fed7aa; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; }
         .profile-name { font-size: 16px; font-weight: bold; color: #1f2937; }
         .profile-weight { font-size: 13px; color: #e11d48; font-weight: bold; background: #ffe4e6; padding: 2px 8px; border-radius: 20px; }
-        .tabs { display: flex; gap: 4px; padding: 0 12px; margin-bottom: 8px; }
-        .tab-btn { flex: 1; padding: 8px 4px; border: none; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; background: #f3f4f6; color: #4b5563; }
+        .tabs { display: flex; gap: 6px; padding: 0 12px; margin-bottom: 8px; }
+        .tab-btn { flex: 1; padding: 10px 4px; border: none; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; background: #e5e7eb; color: #4b5563; text-align: center; }
         .tab-btn.active-feed { background: #fb923c; color: white; }
         .tab-btn.active-poop { background: #78350f; color: white; }
         .tab-btn.active-weight { background: #e11d48; color: white; }
@@ -54,17 +54,17 @@
 </head>
 <body>
     <div class="app-container">
-        <div id="cloud-status-bar" class="cloud-status">✨ 本地與雲端同步模式已啟動</div>
+        <div id="cloud-status-bar" class="cloud-status">✨ 本地安全防護模式已啟動</div>
         <div class="header">🐱 Liz 日常全方位記錄</div>
         <div class="profile-card">
             <div class="profile-info">
                 <div class="avatar">🐱</div>
                 <div>
                     <div class="profile-name">Liz</div>
-                    <div style="font-size:11px;color:#6b7280;">共同守護貓貓健康</div>
+                    <div style="font-size:11px;color:#6b7280;">健康共同守护</div>
                 </div>
             </div>
-            <div id="latest-weight-display" class="profile-card-right">
+            <div id="latest-weight-display">
                 <span class="profile-weight">⚖️ -- kg</span>
             </div>
         </div>
@@ -98,8 +98,8 @@
     </div>
 
     <script>
-        // ⚠️ 請在此處填入你的 Google 網址。如果留空，App 依然能完全正常運作！ ⚠️
-        const API_URL = https://script.google.com/macros/s/AKfycbyWrSfnsINj_a3rLwSW00DJHsncJu3aVfiuLE7thdahPpC1bHkU0LynIMbMtMEynIWE/exec; 
+        // 🌟 這次我們先留空，排除任何因為雲端網址引起的罷工錯誤
+        const API_URL = ""; 
 
         let logs = JSON.parse(localStorage.getItem('cat_all_logs')) || [];
         let activeTab = 'feeding';
@@ -107,75 +107,74 @@
 
         function updateStatus(text) { document.getElementById('cloud-status-bar').innerText = text; }
         function getOffsetDate(offset) { const d = new Date(); d.setDate(d.getDate() + offset); return d.toISOString().split('T')[0]; }
+        
         function initDateTime() {
             document.getElementById('custom-date').value = new Date().toISOString().split('T')[0];
             document.getElementById('custom-time').value = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:false});
         }
 
-        async function fetchLogs() {
-            if(!API_URL || API_URL.includes("換成你") || API_URL === "") return;
-            try {
-                updateStatus("☁️ 正在與雲端同步...");
-                let response = await fetch(API_URL);
-                let cloudLogs = await response.json();
-                if(cloudLogs && cloudLogs.length > 0) {
-                    logs = cloudLogs;
-                    localStorage.setItem('cat_all_logs', JSON.stringify(logs));
-                    renderLogs();
-                    updateChart();
-                    updateWeightDisplay();
-                    updateStatus("🟢 雲端同步完成");
-                }
-            } catch (e) { 
-                updateStatus("🟡 目前處於本地安全防護模式");
+        // 🌟 100% 安全分頁點擊函數，絕對不再卡死
+        function switchTab(tabName) {
+            activeTab = tabName;
+            
+            // 重設所有按鈕樣式
+            document.getElementById('tab-feed').className = "tab-btn";
+            document.getElementById('tab-poop').className = "tab-btn";
+            document.getElementById('tab-weight').className = "tab-btn";
+            
+            // 根據點擊激活對應按鈕
+            if (tabName === 'feeding') {
+                document.getElementById('tab-feed').className = "tab-btn active-feed";
+            } else if (tabName === 'poop') {
+                document.getElementById('tab-poop').className = "tab-btn active-poop";
+            } else if (tabName === 'weight') {
+                document.getElementById('tab-weight').className = "tab-btn active-weight";
             }
-        }
-
-        function switchTab(e){
-            activeTab = e; 
-            document.getElementById('tab-feed').className = "tab-btn" + (e==='feeding'?" active-feed":"");
-            document.getElementById('tab-poop').className = "tab-btn" + (e==='poop'?" active-poop":"");
-            document.getElementById('tab-weight').className = "tab-btn" + (e==='weight'?" active-weight":"");
+            
             renderInputs();
         }
 
-        function renderInputs(){
-            const e = document.getElementById('form-dynamic-inputs');
-            if("feeding" === activeTab){
-                e.innerHTML = <select id="food-type" class="select-box" style="width:80px"><option>乾糧</option><option>濕糧</option><option>零食</option><option>飲水</option></select><input type="text" id="food-amount" placeholder="份量 (e.g. 40g)" class="input-text" style="flex:1"><button type="submit" class="btn-submit btn-feed">加</button>;
-            } else if("poop" === activeTab) {
-                e.innerHTML = <select id="poop-type" class="select-box" style="flex:1"><option>便便 💩</option><option>尿尿 💧</option></select><select id="poop-status" class="select-box" style="flex:1"><option>正常 🪵</option><option>肚痾/偏軟 🌊</option><option>太硬/便秘 🪨</option></select><button type="submit" class="btn-submit btn-poop">加</button>;
-            } else {
-                e.innerHTML = <input type="number" step="0.01" id="cat-weight-input" placeholder="目前體重 (e.g. 4.5)" class="input-text" style="flex:1"><span style="font-size:14px;font-weight:bold;">kg</span><button type="submit" class="btn-submit btn-weight">加</button>;
+        // 🌟 100% 畫出輸入框與加掣
+        function renderInputs() {
+            const container = document.getElementById('form-dynamic-inputs');
+            if (activeTab === 'feeding') {
+                container.innerHTML = '<select id="food-type" class="select-box" style="width:80px"><option>乾糧</option><option>濕糧</option><option>零食</option><option>飲水</option></select><input type="text" id="food-amount" placeholder="份量 (e.g. 40g)" class="input-text" style="flex:1"><button type="submit" class="btn-submit btn-feed">加</button>';
+            } else if (activeTab === 'poop') {
+                container.innerHTML = '<select id="poop-type" class="select-box" style="flex:1"><option>便便 💩</option><option>尿尿 💧</option></select><select id="poop-status" class="select-box" style="flex:1"><option>正常 🪵</option><option>肚痾/偏軟 🌊</option><option>太硬/便秘 🪨</option></select><button type="submit" class="btn-submit btn-poop">加</button>';
+            } else if (activeTab === 'weight') {
+                container.innerHTML = '<input type="number" step="0.01" id="cat-weight-input" placeholder="體重 (e.g. 4.5)" class="input-text" style="flex:1"><span style="font-size:14px;font-weight:bold;margin-right:4px;">kg</span><button type="submit" class="btn-submit btn-weight">加</button>';
             }
         }
 
         function updateWeightDisplay() {
-            let weightLog = logs.find(l => l.category === 'weight');
-            if(weightLog) {
-                document.getElementById('latest-weight-display').innerHTML = <span class="profile-weight">⚖️ ${weightLog.detail} kg</span>;
+            let weightLog = logs.find(function(l) { return l.category === 'weight'; });
+            if (weightLog) {
+                document.getElementById('latest-weight-display').innerHTML = '<span class="profile-weight">⚖️ ' + weightLog.detail + ' kg</span>';
             } else {
-                document.getElementById('latest-weight-display').innerHTML = <span class="profile-weight">⚖️ -- kg</span>;
+                document.getElementById('latest-weight-display').innerHTML = '<span class="profile-weight">⚖️ -- kg</span>';
             }
         }
 
-        function renderLogs(){
-            const e = document.getElementById('log-list-area');
-            if(!logs || 0 === logs.length){ e.innerHTML = <p class="empty-text">未有任何紀錄，請新增第一條</p>; return; }
-            e.innerHTML = logs.map(e => {
+        function renderLogs() {
+            const area = document.getElementById('log-list-area');
+            if (!logs || logs.length === 0) {
+                area.innerHTML = '<p class="empty-text">未有任何紀錄，請新增第一條</p>';
+                return;
+            }
+            area.innerHTML = logs.map(function(e) {
                 let dotClass = "dot-feed"; let textClass = "text-feed";
-                if(e.category==='poop') { dotClass="dot-poop"; textClass="text-poop"; }
-                if(e.category==='weight') { dotClass="dot-weight"; textClass="text-weight"; }
-                let displayType = e.category==='weight' ? "⚖️ 體重登記" : e.type;
-                let displayDetail = e.category==='weight' ? ${e.detail} kg : e.detail;
-                return <div class="log-item"><div class="log-left"><span class="dot ${dotClass}"></span><div><div class="log-title">${displayType}</div><div class="log-time">${String(e.date).substring(0,10)} @ ${e.time}</div></div></div><div style="display:flex;align-items:center;gap:8px"><span class="log-detail ${textClass}">${displayDetail}</span><button class="btn-del" onclick="deleteLog('${e.id}')">🗑️</button></div></div>;
+                if (e.category === 'poop') { dotClass = "dot-poop"; textClass = "text-poop"; }
+                if (e.category === 'weight') { dotClass = "dot-weight"; textClass = "text-weight"; }
+                let displayType = e.category === 'weight' ? "⚖️ 體重登記" : e.type;
+                let displayDetail = e.category === 'weight' ? e.detail + " kg" : e.detail;
+                return '<div class="log-item"><div class="log-left"><span class="dot ' + dotClass + '"></span><div><div class="log-title">' + displayType + '</div><div class="log-time">' + String(e.date).substring(0,10) + ' @ ' + e.time + '</div></div></div><div style="display:flex;align-items:center;gap:8px"><span class="log-detail ' + textClass + '">' + displayDetail + '</span><button class="btn-del" onclick="deleteLog(\'' + e.id + '\')">🗑️</button></div></div>';
             }).join("");
         }
 
         function updateChart() {
             const last7Days = []; for (let i = 6; i >= 0; i--) { last7Days.push(getOffsetDate(-i)); }
             const feedCounts = Array(7).fill(0); const poopCounts = Array(7).fill(0);
-            logs.forEach(log => {
+            logs.forEach(function(log) {
                 let formattedDate = String(log.date).substring(0,10);
                 const dayIndex = last7Days.indexOf(formattedDate);
                 if (dayIndex !== -1) { 
@@ -183,7 +182,7 @@
                     if (log.category === 'poop') poopCounts[dayIndex] += 1; 
                 }
             });
-            const labels = last7Days.map(dateStr => dateStr.substring(5));
+            const labels = last7Days.map(function(dateStr) { return dateStr.substring(5); });
             if (myChart) {
                 myChart.data.datasets[0].data = feedCounts; myChart.data.datasets[1].data = poopCounts; myChart.update();
             } else {
@@ -196,17 +195,18 @@
             }
         }
 
-        async function addLog(e){
+        function addLog(e) {
             e.preventDefault(); 
-            const t = document.getElementById('custom-date').value, n = document.getElementById('custom-time').value;
+            const t = document.getElementById('custom-date').value;
+            const n = document.getElementById('custom-time').value;
             let a = {action:"add", id:String(Date.now()), date:t, time:n, category:activeTab, type:"", detail:""};
             
-            if("feeding" === activeTab){
+            if (activeTab === "feeding") {
                 const amt = document.getElementById('food-amount').value.trim(); if(!amt) return;
                 a.type = document.getElementById('food-type').value; a.detail = amt;
-            } else if("poop" === activeTab) {
+            } else if (activeTab === "poop") {
                 a.type = document.getElementById('poop-type').value; a.detail = document.getElementById('poop-status').value;
-            } else {
+            } else if (activeTab === "weight") {
                 const wg = document.getElementById('cat-weight-input').value.trim(); if(!wg) return;
                 a.type = "體重"; a.detail = wg;
             }
@@ -215,29 +215,22 @@
             localStorage.setItem('cat_all_logs', JSON.stringify(logs));
             renderLogs(); updateChart(); updateWeightDisplay();
             initDateTime(); switchTab(activeTab);
-            
-            if(!API_URL || API_URL.includes("換成你") || API_URL === "") return;
-            try {
-                updateStatus("☁️ 正在同步新紀錄到雲端...");
-                await fetch(API_URL, { method: "POST", body: JSON.stringify(a) });
-                updateStatus("🟢 雲端同步完成");
-            } catch (err) {
-                updateStatus("🟡 已安全儲存至本地");
-            }
         }
 
-        async function deleteLog(id){
-            if(confirm("確定要刪除呢條紀錄？")){
-                logs = logs.filter(t => t.id !== id);
+        function deleteLog(id) {
+            if (confirm("確定要刪除呢條紀錄？")) {
+                logs = logs.filter(function(t) { return t.id !== id; });
                 localStorage.setItem('cat_all_logs', JSON.stringify(logs));
                 renderLogs(); updateChart(); updateWeightDisplay();
-                if(!API_URL || API_URL.includes("換成你") || API_URL === "") return;
-                try { await fetch(API_URL, { method: "POST", body: JSON.stringify({action: "delete", id: id}) }); } catch (e) {}
             }
         }
 
-        // 初始化
-        initDateTime(); switchTab("feeding"); renderLogs(); updateChart(); updateWeightDisplay(); fetchLogs();
+        // 初始化啟動
+        initDateTime(); 
+        switchTab("feeding"); 
+        renderLogs(); 
+        updateChart(); 
+        updateWeightDisplay();
     </script>
 </body>
 </html>
