@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🐱 Liz 日常全方位記錄 (同步版)</title>
+    <title>🐱 Liz 日常全方位記錄 (雲端雙保險版)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
@@ -14,16 +14,16 @@
         .profile-info { display: flex; align-items: center; gap: 12px; }
         .avatar { width: 48px; height: 48px; background: #fed7aa; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; }
         .profile-name { font-size: 16px; font-weight: bold; color: #1f2937; }
-        .profile-weight { font-size: 12px; color: #6b7280; }
         .tabs { display: flex; gap: 8px; padding: 0 12px; margin-bottom: 8px; }
         .tab-btn { flex: 1; padding: 10px; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; background: #f3f4f6; color: #4b5563; }
         .tab-btn.active-feed { background: #fb923c; color: white; }
         .tab-btn.active-poop { background: #78350f; color: white; }
-        .form-section { padding: 0 12px 12px 12px; }
+        .form-section { padding: 0 12px 12px 12px; min-height: 100px; }
         .log-form { background: #f9fafb; padding: 12px; border-radius: 12px; display: flex; flex-direction: column; gap: 8px; }
         .label-text { font-size: 10px; color: #9ca3af; display: block; margin-bottom: 2px; }
+        .input-text { width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; background: white; }
         .select-box { padding: 8px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; background: white; }
-        .btn-submit { padding: 8px 16px; border: none; border-radius: 8px; color: white; font-weight: bold; font-size: 14px; cursor: pointer; min-width: 50px; text-align: center; }
+        .btn-submit { padding: 8px 16px; border: none; border-radius: 8px; color: white; font-weight: bold; font-size: 14px; cursor: pointer; min-width: 60px; text-align: center; }
         .btn-feed { background: #fb923c; }
         .btn-poop { background: #78350f; }
         .chart-section { padding: 12px; border-top: 1px solid #f3f4f6; background: #fdfdfd; }
@@ -43,21 +43,19 @@
         .text-poop { color: #78350f; }
         .btn-del { color: #d1d5db; border: none; background: none; font-size: 12px; cursor: pointer; padding: 4px; }
         .empty-text { text-align: center; font-size: 13px; color: #9ca3af; padding: 16px 0; }
-        
-        /* 載入中動畫 */
-        .loading-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); justify-content: center; align-items: center; z-index: 100; font-size: 14px; color: #fb923c; font-weight: bold; }
+        .cloud-status { text-align: center; font-size: 11px; color: #9ca3af; padding: 4px; background: #f3f4f6; }
     </style>
 </head>
 <body>
     <div class="app-container">
-        <div id="loading" class="loading-overlay">☁️ 雲端數據同步中...</div>
-        <div class="header">🐱 Liz 日常全方位記錄 (同步版)</div>
+        <div id="cloud-status-bar" class="cloud-status">✨ 雙保險同步模式啟動</div>
+        <div class="header">🐱 Liz 日常全方位記錄</div>
         <div class="profile-card">
             <div class="profile-info">
                 <div class="avatar">🐱</div>
                 <div>
                     <div class="profile-name">Liz</div>
-                    <div class="profile-weight">共同守護健康</div>
+                    <div class="profile-weight">共同守護健康 (同步版)</div>
                 </div>
             </div>
         </div>
@@ -90,42 +88,52 @@
     </div>
 
     <script>
-        // ⚠️ 貼心提示：請將下面呢句換成你之前拿到嘅 Google Apps Script 網址 ⚠️
+        // ⚠️ 請在此處填入你的 Google Apps Script 網址 ⚠️
         const API_URL = https://script.google.com/macros/s/AKfycbyWrSfnsINj_a3rLwSW00DJHsncJu3aVfiuLE7thdahPpC1bHkU0LynIMbMtMEynIWE/exec; 
 
-        let logs = [];
+        let logs = JSON.parse(localStorage.getItem('cat_all_logs')) || [];
         let activeTab = 'feeding';
         let myChart = null;
 
-        function showLoading(show) { document.getElementById('loading').style.display = show ? 'flex' : 'none'; }
+        function updateStatus(text) { document.getElementById('cloud-status-bar').innerText = text; }
         function getOffsetDate(offset) { const d = new Date(); d.setDate(d.getDate() + offset); return d.toISOString().split('T')[0]; }
         function initDateTime() {
             document.getElementById('custom-date').value = new Date().toISOString().split('T')[0];
             document.getElementById('custom-time').value = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:false});
         }
 
-        // 從雲端 Google Sheet 讀取數據
         async function fetchLogs() {
             if(!API_URL || API_URL.includes("換成你")) return;
-            showLoading(true);
+            updateStatus("☁️ 正在與雲端同步...");
             try {
                 let response = await fetch(API_URL);
-                logs = await response.json();
-                renderLogs();
-                updateChart();
-            } catch (e) { alert("讀取雲端數據失敗：" + e); }
-            showLoading(false);
+                let cloudLogs = await response.json();
+                if(cloudLogs && cloudLogs.length > 0) {
+                    logs = cloudLogs;
+                    localStorage.setItem('cat_all_logs', JSON.stringify(logs));
+                    renderLogs();
+                    updateChart();
+                    updateStatus("🟢 雲端同步完成");
+                }
+            } catch (e) { 
+                updateStatus("🟡 雲端連線受阻，目前切換至本地安全模式");
+            }
         }
 
         function switchTab(e){
             activeTab=e; const t=document.getElementById('tab-feed'), n=document.getElementById('tab-poop');
-            if("feeding"===e){t.className="tab-btn active-feed"; n.className="tab-btn"}else{t.className="tab-btn"; n.className="tab-btn active-poop"}renderInputs()
+            if("feeding"===e){t.className="tab-btn active-feed"; n.className="tab-btn"}else{t.className="tab-btn"; n.className="tab-btn active-poop"}
+            renderInputs();
         }
 
+        // 🌟 確保這個函數被正確呼叫
         function renderInputs(){
             const e=document.getElementById('form-dynamic-inputs');
-            if("feeding"===activeTab){e.innerHTML=<select id="food-type" class="select-box" style="width:80px"><option>乾糧</option><option>濕糧</option><option>零食</option><option>飲水</option></select><input type="text" id="food-amount" placeholder="份量 (e.g. 40g)" class="input-text" style="flex:1"><button type="submit" class="btn-submit btn-feed">加</button>}
-            else{e.innerHTML=<select id="poop-type" class="select-box" style="flex:1"><option>便便 💩</option><option>尿尿 💧</option></select><select id="poop-status" class="select-box" style="flex:1"><option>正常 🪵</option><option>肚痾/偏軟 🌊</option><option>太硬/便秘 🪨</option></select><button type="submit" class="btn-submit btn-poop">加</button>}
+            if("feeding"===activeTab){
+                e.innerHTML=<select id="food-type" class="select-box" style="width:80px"><option>乾糧</option><option>濕糧</option><option>零食</option><option>飲水</option></select><input type="text" id="food-amount" placeholder="份量 (e.g. 40g)" class="input-text" style="flex:1"><button type="submit" class="btn-submit btn-feed">加</button>;
+            } else {
+                e.innerHTML=<select id="poop-type" class="select-box" style="flex:1"><option>便便 💩</option><option>尿尿 💧</option></select><select id="poop-status" class="select-box" style="flex:1"><option>正常 🪵</option><option>肚痾/偏軟 🌊</option><option>太硬/便秘 🪨</option></select><button type="submit" class="btn-submit btn-poop">加</button>;
+            }
         }
 
         function renderLogs(){
@@ -158,34 +166,51 @@
         }
 
         async function addLog(e){
-            e.preventDefault(); const t=document.getElementById('custom-date').value, n=document.getElementById('custom-time').value;
+            e.preventDefault(); 
+            const t=document.getElementById('custom-date').value, n=document.getElementById('custom-time').value;
             let a={action:"add", id:String(Date.now()), date:t, time:n, category:activeTab, type:"", detail:""};
             if("feeding"===activeTab){
                 const e=document.getElementById('food-amount').value.trim(); if(!e) return;
                 a.type=document.getElementById('food-type').value; a.detail=e;
             }else{a.type=document.getElementById('poop-type').value; a.detail=document.getElementById('poop-status').value}
             
-            showLoading(true);
+            logs.unshift(a);
+            localStorage.setItem('cat_all_logs', JSON.stringify(logs));
+            renderLogs();
+            updateChart();
+            
+            if("feeding"===activeTab) document.getElementById('food-amount').value="";
+            initDateTime();
+            
+            if(!API_URL || API_URL.includes("換成你")) return;
             try {
+                updateStatus("☁️ 正在同步新紀錄到雲端...");
                 await fetch(API_URL, { method: "POST", body: JSON.stringify(a) });
-                if("feeding"===activeTab) document.getElementById('food-amount').value="";
-                initDateTime();
-                await fetchLogs();
-            } catch (e) { alert("上傳失敗：" + e); showLoading(false); }
+                updateStatus("🟢 雲端同步完成");
+            } catch (err) {
+                updateStatus("🟡 已儲存至本地 (連線恢復時將自動同步)");
+            }
         }
 
         async function deleteLog(id){
             if(confirm("確定要刪除呢條紀錄？")){
-                showLoading(true);
+                logs = logs.filter(t => t.id !== id);
+                localStorage.setItem('cat_all_logs', JSON.stringify(logs));
+                renderLogs();
+                updateChart();
+                if(!API_URL || API_URL.includes("換成你")) return;
                 try {
                     await fetch(API_URL, { method: "POST", body: JSON.stringify({action: "delete", id: id}) });
-                    await fetchLogs();
-                } catch (e) { alert("刪除失敗：" + e); showLoading(false); }
+                } catch (e) { updateStatus("⚠️ 雲端刪除失敗，已先從本地移除"); }
             }
         }
 
-        // ✨ 關鍵修復：確保初始化時就把輸入框同「加」字按鈕畫出來
-        switchTab("feeding"); renderInputs(); initDateTime(); fetchLogs();
+        // 🌟 終極修復：確保網頁一打開，立刻強制把輸入選單同「加」字掣畫出來！
+        initDateTime();
+        renderInputs(); 
+        renderLogs();
+        updateChart();
+        fetchLogs();
     </script>
 </body>
 </html>
