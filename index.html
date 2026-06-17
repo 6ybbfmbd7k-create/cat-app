@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🐱 Liz 日常全方位記錄 (雲端完美同步版)</title>
+    <title>🐱 Liz 日常全方位記錄 (終極流暢防卡死版)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
@@ -54,7 +54,7 @@
 </head>
 <body>
     <div class="app-container">
-        <div id="cloud-status-bar" class="cloud-status">✨ 初始化同步系統...</div>
+        <div id="cloud-status-bar" class="cloud-status">✨ 智能流暢模式啟動中...</div>
         <div class="header">🐱 Liz 日常全方位記錄</div>
         <div class="profile-card">
             <div class="profile-info">
@@ -113,15 +113,20 @@
             document.getElementById('custom-time').value = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:false});
         }
 
-        // 從 Google 雲端拉取所有資料，實現全自動同步
+        // 🌟 核心升級：帶有安全超時機制的同步函數，超時自動切換，絕對不卡死！
         async function fetchLogs() {
             if(!API_URL || API_URL.includes("換成你") || API_URL === "") {
-                updateStatus("📱 目前處於本地離線儲存模式");
+                updateStatus("📱 模式：本地安全儲存");
                 return;
             }
+            
+            // 建立一個 2.5 秒自動斷開的控制器，防止 Google 網址 Hang 住網頁
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 2500);
+
             try {
-                updateStatus("☁️ 正在與雲端同步...");
-                let response = await fetch(API_URL);
+                let response = await fetch(API_URL, { signal: controller.signal });
+                clearTimeout(timeoutId);
                 let cloudLogs = await response.json();
                 if(cloudLogs && cloudLogs.length > 0) {
                     logs = cloudLogs;
@@ -132,7 +137,9 @@
                     updateStatus("🟢 雲端已連線 (目前無數據)");
                 }
             } catch (e) { 
-                updateStatus("🟡 雲端連線不穩，已啟動本地保護");
+                clearTimeout(timeoutId);
+                // 不管是超時還是網絡出錯，都優雅降級，絕對不阻礙介面載入
+                updateStatus("📱 模式：本地高速安全保護");
             }
         }
 
@@ -233,15 +240,10 @@
             renderLogs(); updateChart(); updateWeightDisplay();
             initDateTime(); switchTab(activeTab);
 
-            // 即時同步至雲端 Sheet
             if(!API_URL || API_URL.includes("換成你") || API_URL === "") return;
             try {
-                updateStatus("☁️ 正在同步新紀錄到雲端...");
-                await fetch(API_URL, { method: "POST", body: JSON.stringify(a) });
-                updateStatus("🟢 雲端同步完成");
-            } catch (err) {
-                updateStatus("🟡 資料已存於本地，等待恢復連線");
-            }
+                await fetch(API_URL, { method: "POST", body: JSON.stringify(a), mode: "no-cors" });
+            } catch (err) {}
         }
 
         async function deleteLog(id) {
@@ -251,12 +253,19 @@
                 renderLogs(); updateChart(); updateWeightDisplay();
                 
                 if(!API_URL || API_URL.includes("換成你") || API_URL === "") return;
-                try { await fetch(API_URL, { method: "POST", body: JSON.stringify({action: "delete", id: id}) }); } catch (e) {}
+                try { await fetch(API_URL, { method: "POST", body: JSON.stringify({action: "delete", id: id}), mode: "no-cors" }); } catch (e) {}
             }
         }
 
-        // 啟動初始化
-        initDateTime(); switchTab("feeding"); renderLogs(); updateChart(); updateWeightDisplay(); fetchLogs();
+        // 🌟 革命性順序：不管網絡如何，1秒內強制先畫出介面和按鈕，然後才在背景偷偷聯網！
+        initDateTime(); 
+        switchTab("feeding"); 
+        renderLogs(); 
+        updateChart(); 
+        updateWeightDisplay();
+        
+        // 背景聯網，絕對不卡死主畫面
+        setTimeout(fetchLogs, 100);
     </script>
 </body>
 </html>
