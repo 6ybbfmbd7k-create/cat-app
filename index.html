@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🐱 Liz 日常全方位記錄 (雲端雙保險版)</title>
+    <title>🐱 Liz 日常全方位記錄 (終極體重同步版)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
@@ -14,33 +14,39 @@
         .profile-info { display: flex; align-items: center; gap: 12px; }
         .avatar { width: 48px; height: 48px; background: #fed7aa; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; }
         .profile-name { font-size: 16px; font-weight: bold; color: #1f2937; }
-        .tabs { display: flex; gap: 8px; padding: 0 12px; margin-bottom: 8px; }
-        .tab-btn { flex: 1; padding: 10px; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; background: #f3f4f6; color: #4b5563; }
+        .profile-weight { font-size: 13px; color: #e11d48; font-weight: bold; background: #ffe4e6; padding: 2px 8px; border-radius: 20px; }
+        .tabs { display: flex; gap: 4px; padding: 0 12px; margin-bottom: 8px; }
+        .tab-btn { flex: 1; padding: 8px 4px; border: none; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; background: #f3f4f6; color: #4b5563; }
         .tab-btn.active-feed { background: #fb923c; color: white; }
         .tab-btn.active-poop { background: #78350f; color: white; }
-        .form-section { padding: 0 12px 12px 12px; min-height: 100px; }
+        .tab-btn.active-weight { background: #e11d48; color: white; }
+        .form-section { padding: 0 12px 12px 12px; }
         .log-form { background: #f9fafb; padding: 12px; border-radius: 12px; display: flex; flex-direction: column; gap: 8px; }
         .label-text { font-size: 10px; color: #9ca3af; display: block; margin-bottom: 2px; }
+        .flex-row { display: flex; gap: 8px; width: 100%; align-items: center; }
         .input-text { width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; background: white; }
         .select-box { padding: 8px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; background: white; }
         .btn-submit { padding: 8px 16px; border: none; border-radius: 8px; color: white; font-weight: bold; font-size: 14px; cursor: pointer; min-width: 60px; text-align: center; }
         .btn-feed { background: #fb923c; }
         .btn-poop { background: #78350f; }
+        .btn-weight { background: #e11d48; }
         .chart-section { padding: 12px; border-top: 1px solid #f3f4f6; background: #fdfdfd; }
         .chart-container { background: white; border: 1px solid #e5e7eb; padding: 10px; border-radius: 12px; position: relative; width: 100%; height: 180px; }
         .history-section { border-top: 1px solid #f3f4f6; padding: 12px; }
         .history-title { font-size: 12px; font-weight: bold; color: #9ca3af; margin-bottom: 8px; }
-        .log-list { max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
-        .log-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px; border-radius: 12px; border: 1px solid #f3f4f6; }
+        .log-list { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+        .log-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 8px 12px; border-radius: 12px; border: 1px solid #f3f4f6; }
         .log-left { display: flex; align-items: center; gap: 8px; }
         .dot { width: 6px; height: 6px; border-radius: 50%; }
         .dot-feed { background: #fb923c; }
         .dot-poop { background: #78350f; }
+        .dot-weight { background: #e11d48; }
         .log-title { font-size: 13px; font-weight: bold; color: #1f2937; }
         .log-time { font-size: 10px; color: #9ca3af; }
         .log-detail { font-size: 13px; font-weight: bold; }
         .text-feed { color: #f97316; }
         .text-poop { color: #78350f; }
+        .text-weight { color: #e11d48; }
         .btn-del { color: #d1d5db; border: none; background: none; font-size: 12px; cursor: pointer; padding: 4px; }
         .empty-text { text-align: center; font-size: 13px; color: #9ca3af; padding: 16px 0; }
         .cloud-status { text-align: center; font-size: 11px; color: #9ca3af; padding: 4px; background: #f3f4f6; }
@@ -48,21 +54,25 @@
 </head>
 <body>
     <div class="app-container">
-        <div id="cloud-status-bar" class="cloud-status">✨ 雙保險同步模式啟動</div>
+        <div id="cloud-status-bar" class="cloud-status">✨ 本地與雲端同步模式已啟動</div>
         <div class="header">🐱 Liz 日常全方位記錄</div>
         <div class="profile-card">
             <div class="profile-info">
                 <div class="avatar">🐱</div>
                 <div>
                     <div class="profile-name">Liz</div>
-                    <div class="profile-weight">共同守護健康 (同步版)</div>
+                    <div style="font-size:11px;color:#6b7280;">共同守護貓貓健康</div>
                 </div>
+            </div>
+            <div id="latest-weight-display" class="profile-card-right">
+                <span class="profile-weight">⚖️ -- kg</span>
             </div>
         </div>
         
         <div class="tabs">
             <button id="tab-feed" class="tab-btn active-feed" onclick="switchTab('feeding')">🍖 餵食紀錄</button>
             <button id="tab-poop" class="tab-btn" onclick="switchTab('poop')">💩 鏟屎健康</button>
+            <button id="tab-weight" class="tab-btn" onclick="switchTab('weight')">⚖️ 體重登記</button>
         </div>
         <div class="form-section">
             <form class="log-form" onsubmit="addLog(event)">
@@ -70,7 +80,7 @@
                     <div style="flex:1"><label class="label-text">自訂日期</label><input type="date" id="custom-date" class="input-text"></div>
                     <div style="width:35%"><label class="label-text">時間</label><input type="time" id="custom-time" class="input-text"></div>
                 </div>
-                <div class="flex-row" id="form-dynamic-inputs" style="align-items:center;margin-top:4px;"></div>
+                <div class="flex-row" id="form-dynamic-inputs"></div>
             </form>
         </div>
 
@@ -88,7 +98,7 @@
     </div>
 
     <script>
-        // ⚠️ 請在此處填入你的 Google Apps Script 網址 ⚠️
+        // ⚠️ 請在此處填入你的 Google 網址。如果留空，App 依然能完全正常運作！ ⚠️
         const API_URL = https://script.google.com/macros/s/AKfycbyWrSfnsINj_a3rLwSW00DJHsncJu3aVfiuLE7thdahPpC1bHkU0LynIMbMtMEynIWE/exec; 
 
         let logs = JSON.parse(localStorage.getItem('cat_all_logs')) || [];
@@ -103,9 +113,9 @@
         }
 
         async function fetchLogs() {
-            if(!API_URL || API_URL.includes("換成你")) return;
-            updateStatus("☁️ 正在與雲端同步...");
+            if(!API_URL || API_URL.includes("換成你") || API_URL === "") return;
             try {
+                updateStatus("☁️ 正在與雲端同步...");
                 let response = await fetch(API_URL);
                 let cloudLogs = await response.json();
                 if(cloudLogs && cloudLogs.length > 0) {
@@ -113,45 +123,66 @@
                     localStorage.setItem('cat_all_logs', JSON.stringify(logs));
                     renderLogs();
                     updateChart();
+                    updateWeightDisplay();
                     updateStatus("🟢 雲端同步完成");
                 }
             } catch (e) { 
-                updateStatus("🟡 雲端連線受阻，目前切換至本地安全模式");
+                updateStatus("🟡 目前處於本地安全防護模式");
             }
         }
 
         function switchTab(e){
-            activeTab=e; const t=document.getElementById('tab-feed'), n=document.getElementById('tab-poop');
-            if("feeding"===e){t.className="tab-btn active-feed"; n.className="tab-btn"}else{t.className="tab-btn"; n.className="tab-btn active-poop"}
+            activeTab = e; 
+            document.getElementById('tab-feed').className = "tab-btn" + (e==='feeding'?" active-feed":"");
+            document.getElementById('tab-poop').className = "tab-btn" + (e==='poop'?" active-poop":"");
+            document.getElementById('tab-weight').className = "tab-btn" + (e==='weight'?" active-weight":"");
             renderInputs();
         }
 
-        // 🌟 確保這個函數被正確呼叫
         function renderInputs(){
-            const e=document.getElementById('form-dynamic-inputs');
-            if("feeding"===activeTab){
-                e.innerHTML=<select id="food-type" class="select-box" style="width:80px"><option>乾糧</option><option>濕糧</option><option>零食</option><option>飲水</option></select><input type="text" id="food-amount" placeholder="份量 (e.g. 40g)" class="input-text" style="flex:1"><button type="submit" class="btn-submit btn-feed">加</button>;
+            const e = document.getElementById('form-dynamic-inputs');
+            if("feeding" === activeTab){
+                e.innerHTML = <select id="food-type" class="select-box" style="width:80px"><option>乾糧</option><option>濕糧</option><option>零食</option><option>飲水</option></select><input type="text" id="food-amount" placeholder="份量 (e.g. 40g)" class="input-text" style="flex:1"><button type="submit" class="btn-submit btn-feed">加</button>;
+            } else if("poop" === activeTab) {
+                e.innerHTML = <select id="poop-type" class="select-box" style="flex:1"><option>便便 💩</option><option>尿尿 💧</option></select><select id="poop-status" class="select-box" style="flex:1"><option>正常 🪵</option><option>肚痾/偏軟 🌊</option><option>太硬/便秘 🪨</option></select><button type="submit" class="btn-submit btn-poop">加</button>;
             } else {
-                e.innerHTML=<select id="poop-type" class="select-box" style="flex:1"><option>便便 💩</option><option>尿尿 💧</option></select><select id="poop-status" class="select-box" style="flex:1"><option>正常 🪵</option><option>肚痾/偏軟 🌊</option><option>太硬/便秘 🪨</option></select><button type="submit" class="btn-submit btn-poop">加</button>;
+                e.innerHTML = <input type="number" step="0.01" id="cat-weight-input" placeholder="目前體重 (e.g. 4.5)" class="input-text" style="flex:1"><span style="font-size:14px;font-weight:bold;">kg</span><button type="submit" class="btn-submit btn-weight">加</button>;
+            }
+        }
+
+        function updateWeightDisplay() {
+            let weightLog = logs.find(l => l.category === 'weight');
+            if(weightLog) {
+                document.getElementById('latest-weight-display').innerHTML = <span class="profile-weight">⚖️ ${weightLog.detail} kg</span>;
+            } else {
+                document.getElementById('latest-weight-display').innerHTML = <span class="profile-weight">⚖️ -- kg</span>;
             }
         }
 
         function renderLogs(){
-            const e=document.getElementById('log-list-area');
-            if(!logs || 0===logs.length){e.innerHTML=<p class="empty-text">未有任何紀錄，請新增第一條</p>;return}
-            e.innerHTML=logs.map(e=><div class="log-item"><div class="log-left"><span class="dot ${"feeding"===e.category?"dot-feed":"dot-poop"}"></span><div><div class="log-title">${e.type}</div><div class="log-time">${String(e.date).substring(0,10)} @ ${e.time}</div></div></div><div style="display:flex;align-items:center;gap:8px"><span class="log-detail ${"feeding"===e.category?"text-feed":"text-poop"}">${e.detail}</span><button class="btn-del" onclick="deleteLog('${e.id}')">🗑️</button></div></div>).join("")
+            const e = document.getElementById('log-list-area');
+            if(!logs || 0 === logs.length){ e.innerHTML = <p class="empty-text">未有任何紀錄，請新增第一條</p>; return; }
+            e.innerHTML = logs.map(e => {
+                let dotClass = "dot-feed"; let textClass = "text-feed";
+                if(e.category==='poop') { dotClass="dot-poop"; textClass="text-poop"; }
+                if(e.category==='weight') { dotClass="dot-weight"; textClass="text-weight"; }
+                let displayType = e.category==='weight' ? "⚖️ 體重登記" : e.type;
+                let displayDetail = e.category==='weight' ? ${e.detail} kg : e.detail;
+                return <div class="log-item"><div class="log-left"><span class="dot ${dotClass}"></span><div><div class="log-title">${displayType}</div><div class="log-time">${String(e.date).substring(0,10)} @ ${e.time}</div></div></div><div style="display:flex;align-items:center;gap:8px"><span class="log-detail ${textClass}">${displayDetail}</span><button class="btn-del" onclick="deleteLog('${e.id}')">🗑️</button></div></div>;
+            }).join("");
         }
 
         function updateChart() {
             const last7Days = []; for (let i = 6; i >= 0; i--) { last7Days.push(getOffsetDate(-i)); }
             const feedCounts = Array(7).fill(0); const poopCounts = Array(7).fill(0);
-            if(logs && logs.length > 0) {
-                logs.forEach(log => {
-                    let formattedDate = String(log.date).substring(0,10);
-                    const dayIndex = last7Days.indexOf(formattedDate);
-                    if (dayIndex !== -1) { if (log.category === 'feeding') { feedCounts[dayIndex] += 1; } else { poopCounts[dayIndex] += 1; } }
-                });
-            }
+            logs.forEach(log => {
+                let formattedDate = String(log.date).substring(0,10);
+                const dayIndex = last7Days.indexOf(formattedDate);
+                if (dayIndex !== -1) { 
+                    if (log.category === 'feeding') feedCounts[dayIndex] += 1; 
+                    if (log.category === 'poop') poopCounts[dayIndex] += 1; 
+                }
+            });
             const labels = last7Days.map(dateStr => dateStr.substring(5));
             if (myChart) {
                 myChart.data.datasets[0].data = feedCounts; myChart.data.datasets[1].data = poopCounts; myChart.update();
@@ -167,28 +198,31 @@
 
         async function addLog(e){
             e.preventDefault(); 
-            const t=document.getElementById('custom-date').value, n=document.getElementById('custom-time').value;
-            let a={action:"add", id:String(Date.now()), date:t, time:n, category:activeTab, type:"", detail:""};
-            if("feeding"===activeTab){
-                const e=document.getElementById('food-amount').value.trim(); if(!e) return;
-                a.type=document.getElementById('food-type').value; a.detail=e;
-            }else{a.type=document.getElementById('poop-type').value; a.detail=document.getElementById('poop-status').value}
+            const t = document.getElementById('custom-date').value, n = document.getElementById('custom-time').value;
+            let a = {action:"add", id:String(Date.now()), date:t, time:n, category:activeTab, type:"", detail:""};
+            
+            if("feeding" === activeTab){
+                const amt = document.getElementById('food-amount').value.trim(); if(!amt) return;
+                a.type = document.getElementById('food-type').value; a.detail = amt;
+            } else if("poop" === activeTab) {
+                a.type = document.getElementById('poop-type').value; a.detail = document.getElementById('poop-status').value;
+            } else {
+                const wg = document.getElementById('cat-weight-input').value.trim(); if(!wg) return;
+                a.type = "體重"; a.detail = wg;
+            }
             
             logs.unshift(a);
             localStorage.setItem('cat_all_logs', JSON.stringify(logs));
-            renderLogs();
-            updateChart();
+            renderLogs(); updateChart(); updateWeightDisplay();
+            initDateTime(); switchTab(activeTab);
             
-            if("feeding"===activeTab) document.getElementById('food-amount').value="";
-            initDateTime();
-            
-            if(!API_URL || API_URL.includes("換成你")) return;
+            if(!API_URL || API_URL.includes("換成你") || API_URL === "") return;
             try {
                 updateStatus("☁️ 正在同步新紀錄到雲端...");
                 await fetch(API_URL, { method: "POST", body: JSON.stringify(a) });
                 updateStatus("🟢 雲端同步完成");
             } catch (err) {
-                updateStatus("🟡 已儲存至本地 (連線恢復時將自動同步)");
+                updateStatus("🟡 已安全儲存至本地");
             }
         }
 
@@ -196,21 +230,14 @@
             if(confirm("確定要刪除呢條紀錄？")){
                 logs = logs.filter(t => t.id !== id);
                 localStorage.setItem('cat_all_logs', JSON.stringify(logs));
-                renderLogs();
-                updateChart();
-                if(!API_URL || API_URL.includes("換成你")) return;
-                try {
-                    await fetch(API_URL, { method: "POST", body: JSON.stringify({action: "delete", id: id}) });
-                } catch (e) { updateStatus("⚠️ 雲端刪除失敗，已先從本地移除"); }
+                renderLogs(); updateChart(); updateWeightDisplay();
+                if(!API_URL || API_URL.includes("換成你") || API_URL === "") return;
+                try { await fetch(API_URL, { method: "POST", body: JSON.stringify({action: "delete", id: id}) }); } catch (e) {}
             }
         }
 
-        // 🌟 終極修復：確保網頁一打開，立刻強制把輸入選單同「加」字掣畫出來！
-        initDateTime();
-        renderInputs(); 
-        renderLogs();
-        updateChart();
-        fetchLogs();
+        // 初始化
+        initDateTime(); switchTab("feeding"); renderLogs(); updateChart(); updateWeightDisplay(); fetchLogs();
     </script>
 </body>
 </html>
