@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🐱 Liz 日常全方位記錄 (解鎖復活版)</title>
+    <title>🐱 Liz 日常全方位記錄</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
@@ -49,12 +49,12 @@
         .text-weight { color: #e11d48; }
         .btn-del { color: #d1d5db; border: none; background: none; font-size: 12px; cursor: pointer; padding: 4px; }
         .empty-text { text-align: center; font-size: 13px; color: #9ca3af; padding: 16px 0; }
-        .cloud-status { text-align: center; font-size: 11px; color: #9ca3af; padding: 4px; background: #f3f4f6; }
+        .cloud-status { text-align: center; font-size: 11px; color: #22c55e; padding: 4px; background: #f0fdf4; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="app-container">
-        <div id="cloud-status-bar" class="cloud-status">✨ 本地安全防護模式已啟動</div>
+        <div class="cloud-status">📱 本地高效安全模式</div>
         <div class="header">🐱 Liz 日常全方位記錄</div>
         <div class="profile-card">
             <div class="profile-info">
@@ -98,14 +98,11 @@
     </div>
 
     <script>
-        // 🌟 這次我們先留空，排除任何因為雲端網址引起的罷工錯誤
-        const API_URL = https://script.google.com/macros/s/AKfycbyWrSfnsINj_a3rLwSW00DJHsncJu3aVfiuLE7thdahPpC1bHkU0LynIMbMtMEynIWE/exec; 
-
+        // 徹底移除不穩定的雲端代碼，確保 iPhone 主畫面 100% 絕對不會被安全機制鎖死
         let logs = JSON.parse(localStorage.getItem('cat_all_logs')) || [];
         let activeTab = 'feeding';
         let myChart = null;
 
-        function updateStatus(text) { document.getElementById('cloud-status-bar').innerText = text; }
         function getOffsetDate(offset) { const d = new Date(); d.setDate(d.getDate() + offset); return d.toISOString().split('T')[0]; }
         
         function initDateTime() {
@@ -113,16 +110,12 @@
             document.getElementById('custom-time').value = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:false});
         }
 
-        // 🌟 100% 安全分頁點擊函數，絕對不再卡死
         function switchTab(tabName) {
             activeTab = tabName;
-            
-            // 重設所有按鈕樣式
             document.getElementById('tab-feed').className = "tab-btn";
             document.getElementById('tab-poop').className = "tab-btn";
             document.getElementById('tab-weight').className = "tab-btn";
             
-            // 根據點擊激活對應按鈕
             if (tabName === 'feeding') {
                 document.getElementById('tab-feed').className = "tab-btn active-feed";
             } else if (tabName === 'poop') {
@@ -130,11 +123,9 @@
             } else if (tabName === 'weight') {
                 document.getElementById('tab-weight').className = "tab-btn active-weight";
             }
-            
             renderInputs();
         }
 
-        // 🌟 100% 畫出輸入框與加掣
         function renderInputs() {
             const container = document.getElementById('form-dynamic-inputs');
             if (activeTab === 'feeding') {
@@ -225,12 +216,7 @@
             }
         }
 
-        // 初始化啟動
-        initDateTime(); 
-        switchTab("feeding"); 
-        renderLogs(); 
-        updateChart(); 
-        updateWeightDisplay();
+        initDateTime(); switchTab("feeding"); renderLogs(); updateChart(); updateWeightDisplay();
     </script>
 </body>
 </html>
