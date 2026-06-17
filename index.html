@@ -23,7 +23,7 @@
         .log-form { background: #f9fafb; padding: 12px; border-radius: 12px; display: flex; flex-direction: column; gap: 8px; }
         .label-text { font-size: 10px; color: #9ca3af; display: block; margin-bottom: 2px; }
         .select-box { padding: 8px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; background: white; }
-        .btn-submit { padding: 8px 16px; border: none; border-radius: 8px; color: white; font-weight: bold; font-size: 14px; cursor: pointer; }
+        .btn-submit { padding: 8px 16px; border: none; border-radius: 8px; color: white; font-weight: bold; font-size: 14px; cursor: pointer; min-width: 50px; text-align: center; }
         .btn-feed { background: #fb923c; }
         .btn-poop { background: #78350f; }
         .chart-section { padding: 12px; border-top: 1px solid #f3f4f6; background: #fdfdfd; }
@@ -90,7 +90,7 @@
     </div>
 
     <script>
-        // ⚠️ 貼心提示：請將下面呢句換成你第二步拿到嘅 Google Apps Script 網址 ⚠️
+        // ⚠️ 貼心提示：請將下面呢句換成你之前拿到嘅 Google Apps Script 網址 ⚠️
         const API_URL = https://script.google.com/macros/s/AKfycbyWrSfnsINj_a3rLwSW00DJHsncJu3aVfiuLE7thdahPpC1bHkU0LynIMbMtMEynIWE/exec; 
 
         let logs = [];
@@ -106,7 +106,7 @@
 
         // 從雲端 Google Sheet 讀取數據
         async function fetchLogs() {
-            if(API_URL.includes("換成你")) return;
+            if(!API_URL || API_URL.includes("換成你")) return;
             showLoading(true);
             try {
                 let response = await fetch(API_URL);
@@ -130,18 +130,20 @@
 
         function renderLogs(){
             const e=document.getElementById('log-list-area');
-            if(0===logs.length){e.innerHTML=<p class="empty-text">未有任何紀錄，請新增第一條</p>;return}
-            e.innerHTML=logs.map(e=><div class="log-item"><div class="log-left"><span class="dot ${"feeding"===e.category?"dot-feed":"dot-poop"}"></span><div><div class="log-title">${e.type}</div><div class="log-time">${e.date.substring(0,10)} @ ${e.time}</div></div></div><div style="display:flex;align-items:center;gap:8px"><span class="log-detail ${"feeding"===e.category?"text-feed":"text-poop"}">${e.detail}</span><button class="btn-del" onclick="deleteLog('${e.id}')">🗑️</button></div></div>).join("")
+            if(!logs || 0===logs.length){e.innerHTML=<p class="empty-text">未有任何紀錄，請新增第一條</p>;return}
+            e.innerHTML=logs.map(e=><div class="log-item"><div class="log-left"><span class="dot ${"feeding"===e.category?"dot-feed":"dot-poop"}"></span><div><div class="log-title">${e.type}</div><div class="log-time">${String(e.date).substring(0,10)} @ ${e.time}</div></div></div><div style="display:flex;align-items:center;gap:8px"><span class="log-detail ${"feeding"===e.category?"text-feed":"text-poop"}">${e.detail}</span><button class="btn-del" onclick="deleteLog('${e.id}')">🗑️</button></div></div>).join("")
         }
 
         function updateChart() {
             const last7Days = []; for (let i = 6; i >= 0; i--) { last7Days.push(getOffsetDate(-i)); }
             const feedCounts = Array(7).fill(0); const poopCounts = Array(7).fill(0);
-            logs.forEach(log => {
-                let formattedDate = log.date.substring(0,10);
-                const dayIndex = last7Days.indexOf(formattedDate);
-                if (dayIndex !== -1) { if (log.category === 'feeding') { feedCounts[dayIndex] += 1; } else { poopCounts[dayIndex] += 1; } }
-            });
+            if(logs && logs.length > 0) {
+                logs.forEach(log => {
+                    let formattedDate = String(log.date).substring(0,10);
+                    const dayIndex = last7Days.indexOf(formattedDate);
+                    if (dayIndex !== -1) { if (log.category === 'feeding') { feedCounts[dayIndex] += 1; } else { poopCounts[dayIndex] += 1; } }
+                });
+            }
             const labels = last7Days.map(dateStr => dateStr.substring(5));
             if (myChart) {
                 myChart.data.datasets[0].data = feedCounts; myChart.data.datasets[1].data = poopCounts; myChart.update();
@@ -182,7 +184,8 @@
             }
         }
 
-        switchTab("feeding"); initDateTime(); fetchLogs();
+        // ✨ 關鍵修復：確保初始化時就把輸入框同「加」字按鈕畫出來
+        switchTab("feeding"); renderInputs(); initDateTime(); fetchLogs();
     </script>
 </body>
 </html>
