@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🐱 Liz 基本紀錄聯網版</title>
+    <title>🐱 Liz 全員同步基本版</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
         body { background: #f9fafb; padding: 15px; display: flex; justify-content: center; }
@@ -17,16 +17,17 @@
         .btn-feed { background: #fb923c; }
         .btn-poop { background: #78350f; }
         .history-section { border-top: 1px solid #f3f4f6; padding: 12px; }
-        .log-list { max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+        .log-list { max-height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
         .log-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px 12px; border-radius: 12px; border: 1px solid #f3f4f6; font-size: 13px; }
-        .status-text { text-align: center; font-size: 11px; color: #6b7280; padding: 4px; background: #f3f4f6; }
+        .status-badge { text-align: center; font-size: 11px; color: #4b5563; padding: 6px; background: #fee2e2; font-weight: bold; }
+        .status-online { background: #dcfce7; color: #166534; }
     </style>
 </head>
 <body>
 
     <div class="app-container">
-        <div class="status-text">☁️ Google Sheet 聯網同步模式已準備</div>
-        <div class="header">🐱 Liz 日常紀錄 (聯網基本版)</div>
+        <div id="sync-status" class="status-badge">🔄 正在連線讀取雲端紀錄...</div>
+        <div class="header">🐱 Liz 日常紀錄 (全員同步版)</div>
 
         <div class="box">
             <div class="title">🍖 新增餵食紀錄</div>
@@ -40,7 +41,7 @@
                     </select>
                     <input type="text" id="food-amount" placeholder="輸入份量 (例如: 40g)" class="input-text" required>
                 </div>
-                <button type="submit" id="btn-feed-submit" class="btn-submit btn-feed">儲存餵食 🍖</button>
+                <button type="submit" class="btn-submit btn-feed">儲存餵食 🍖</button>
             </form>
         </div>
 
@@ -58,13 +59,18 @@
                         <option>偏硬 🪨</option>
                     </select>
                 </div>
-                <button type="submit" id="btn-poop-submit" class="btn-submit btn-poop">儲存鏟屎 💩</button>
+                <button type="submit" class="btn-submit btn-poop">儲存鏟屎 💩</button>
             </form>
         </div>
 
         <div class="history-section">
-            <div class="title" style="color: #9ca3af;">本機發送緩存</div>
-            <div class="log-list" id="log-list-area"></div>
+            <div class="title" style="color: #4b5563; display: flex; justify-content: space-between;">
+                <span>📊 全員同步歷史紀錄</span>
+                <span style="font-size: 11px; color: #0284c7; cursor: pointer;" onclick="fetchFromGoogleSheet()">🔄 手動整理</span>
+            </div>
+            <div class="log-list" id="log-list-area">
+                <p style="text-align:center; color:#9ca3af; padding:15px; font-size:13px;">正在載入雲端資料...</p>
+            </div>
         </div>
     </div>
 
@@ -72,36 +78,61 @@
         // 【⚠️ 重要設定】請把下面引號內換成你的 Google GAS 網址：
         const GAS_URL = "https://script.google.com/macros/s/AKfycbxw8GYN5UFdvloq3gbD9eaT7O8mDPibIufrKPSHuOYNqWPUGwfQkiryCZE_0v1zlE9f/exec";
 
-        let logs = JSON.parse(localStorage.getItem('liz_basic_logs')) || [];
+        let cloudLogs = [];
+
+        // 核心功能：從 Google Sheet 拿取全家人的舊紀錄
+        function fetchFromGoogleSheet() {
+            if (!GAS_URL || GAS_URL === "YOUR_GAS_URL_HERE") return;
+            
+            document.getElementById('sync-status').className = "status-badge";
+            document.getElementById('sync-status').innerText = "🔄 正在同步雲端數據...";
+
+            // 用 GET 方式去讀取 Google Sheet 的資料
+            fetch(GAS_URL + "?action=read")
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                cloudLogs = data;
+                renderLogs();
+                document.getElementById('sync-status').className = "status-badge status-online";
+                document.getElementById('sync-status').innerText = "🟢 雲端同步成功 (已連線)";
+            })
+            .catch(function(err) {
+                console.error("讀取失敗:", err);
+                document.getElementById('sync-status').innerText = "❌ 雲端讀取失敗，請重新整理網頁";
+                // 如果聯網失敗，嘗試讀取本地緩存頂替
+                cloudLogs = JSON.parse(localStorage.getItem('liz_cached_logs')) || [];
+                renderLogs();
+            });
+        }
 
         function renderLogs() {
             const area = document.getElementById('log-list-area');
-            if (logs.length === 0) { area.innerHTML = '<p style="text-align:center; color:#9ca3af; padding:15px; font-size:13px;">未有任何紀錄</p>'; return; }
-            area.innerHTML = logs.map(function(e) {
-                return '<div class="log-item"><div><b>' + e.type + '</b><br><small style="color:#9ca3af;">' + e.time + '</small></div>' +
-                    '<span style="font-weight:bold; color:#fb923c;">' + e.detail + '</span></div>';
-            }).join("");
-        }
-
-        // 核心發送函數：老實、不卡死網頁
-        function sendToGoogleSheet(newData) {
-            if (GAS_URL === "YOUR_GAS_URL_HERE" || !GAS_URL) {
-                alert("請先在代碼中填入你的 Google Sheet GAS 網址！");
+            if (!cloudLogs || cloudLogs.length === 0) {
+                area.innerHTML = '<p style="text-align:center; color:#9ca3af; padding:15px; font-size:13px;">雲端目前未有任何紀錄</p>';
                 return;
             }
             
-            // 用 fetch 暗中傳送，就算網絡慢，按鈕也不會卡死
+            // 顯示歷史紀錄
+            area.innerHTML = cloudLogs.map(function(e) {
+                return '<div class="log-item">' +
+                    '<div><b>' + e.type + '</b><br><small style="color:#9ca3af;">' + e.time + '</small></div>' +
+                    '<div style="display:flex; align-items:center; gap:10px;">' +
+                    '<span style="font-weight:bold; color:#fb923c;">' + e.detail + '</span>' +
+                    '</div></div>';
+            }).join("");
+        }
+
+        // 核心發送函數
+        function sendToGoogleSheet(newData) {
             fetch(GAS_URL, {
                 method: 'POST',
-                mode: 'no-cors', // 確保不會因為跨網域問題而報錯
+                mode: 'no-cors',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newData)
             })
             .then(function() {
-                console.log("資料已成功排隊送上雲端");
-            })
-            .catch(function(err) {
-                console.error("發送失敗:", err);
+                // 發送後延遲 1.5 秒自動重新讀取，確保網頁看到最新資料
+                setTimeout(fetchFromGoogleSheet, 1500);
             });
         }
 
@@ -115,15 +146,12 @@
             const timeStr = (now.getMonth() + 1) + '/' + now.getDate() + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
             const dataItem = { id: String(Date.now()), time: timeStr, type: type, detail: amt };
 
-            // 1. 儲存本地
-            logs.unshift(dataItem);
-            localStorage.setItem('liz_basic_logs', JSON.stringify(logs));
-            document.getElementById('food-amount').value = ''; 
+            // 即時在本地列表最前面插進去，讓使用者感覺「0秒反應」
+            cloudLogs.unshift(dataItem);
             renderLogs();
+            document.getElementById('food-amount').value = ''; 
 
-            // 2. 聯網同步送到 Google Sheet
             sendToGoogleSheet(dataItem);
-            alert('紀錄已儲存，正在同步上傳至 Google Sheet！');
         }
 
         function addPoopLog(e) {
@@ -135,17 +163,14 @@
             const timeStr = (now.getMonth() + 1) + '/' + now.getDate() + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
             const dataItem = { id: String(Date.now()), time: timeStr, type: type, detail: status };
 
-            // 1. 儲存本地
-            logs.unshift(dataItem);
-            localStorage.setItem('liz_basic_logs', JSON.stringify(logs));
+            cloudLogs.unshift(dataItem);
             renderLogs();
 
-            // 2. 聯網同步送到 Google Sheet
             sendToGoogleSheet(dataItem);
-            alert('紀錄已儲存，正在同步上傳至 Google Sheet！');
         }
 
-        renderLogs();
+        // 一開機立刻讀取雲端
+        fetchFromGoogleSheet();
     </script>
 </body>
 </html>
