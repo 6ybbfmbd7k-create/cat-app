@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🐱 Liz 全員同步(完美時間版)</title>
+    <title>🐱 Liz 全員同步(管理編輯版)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
         body { background: #f9fafb; padding: 15px; display: flex; justify-content: center; }
@@ -21,8 +21,10 @@
         .btn-weight { background: #e11d48; }
         .btn-now { background: #3b82f6; color: white; padding: 10px; border: none; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; white-space: nowrap; }
         .history-section { border-top: 1px solid #f3f4f6; padding: 12px; }
-        .log-list { max-height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+        .log-list { max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
         .log-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px 12px; border-radius: 12px; border: 1px solid #f3f4f6; font-size: 13px; }
+        .action-btns { display: flex; gap: 6px; }
+        .btn-action { background: none; border: none; font-size: 14px; cursor: pointer; padding: 4px; }
         .status-badge { text-align: center; font-size: 11px; color: #4b5563; padding: 6px; background: #fee2e2; font-weight: bold; }
         .status-online { background: #dcfce7; color: #166534; }
     </style>
@@ -31,7 +33,7 @@
 
     <div class="app-container">
         <div id="sync-status" class="status-badge">🔄 正在連線讀取雲端紀錄...</div>
-        <div class="header">🐱 Liz 日常紀錄 (完美時間版)</div>
+        <div class="header">🐱 Liz 日常紀錄 (管理編輯版)</div>
 
         <div class="box time-box">
             <div class="title" style="color: #1e40af;">📅 紀錄時間設定 (預設為現在時間)</div>
@@ -103,7 +105,6 @@
 
         let cloudLogs = [];
 
-        // 自動將時間輸入框設定為當前手機時間
         function setCurrentTime() {
             const now = new Date();
             const offset = now.getTimezoneOffset() * 60000;
@@ -111,26 +112,19 @@
             document.getElementById('global-time').value = localISOTime;
         }
 
-        // 🌟 終極修正：將使用者選取的時間，百分之百強制格式化為乾淨的 "M/D HH:mm" 
         function getSelectedTimeStr() {
             const userTimeVal = document.getElementById('global-time').value;
             let t = userTimeVal ? new Date(userTimeVal) : new Date();
-            
-            // 如果手機解讀失敗變成 NaN，就用當前時間頂替
             if (isNaN(t.getTime())) { t = new Date(); }
-
             const month = t.getMonth() + 1;
             const date = t.getDate();
             const hours = String(t.getHours()).padStart(2, '0');
             const minutes = String(t.getMinutes()).padStart(2, '0');
-            
             return month + '/' + date + ' ' + hours + ':' + minutes;
         }
 
-        // 從 Google Sheet 拿取所有紀錄
         function fetchFromGoogleSheet() {
             if (!GAS_URL || GAS_URL === "YOUR_GAS_URL_HERE") return;
-            
             document.getElementById('sync-status').className = "status-badge";
             document.getElementById('sync-status').innerText = "🔄 正在同步雲端數據...";
 
@@ -148,11 +142,9 @@
             });
         }
 
-        // 🌟 額外修正：讀取歷史紀錄時，如果從 Google 拿回來的時間物件帶有 T 或奇怪字符，在此進行二次清洗
         function cleanDisplayTime(timeInput) {
             if (!timeInput) return "";
             let timeStr = String(timeInput);
-            // 如果是從 Google Sheet 倒讀出來的 ISO 格式（例如 2026-06-20T12:30:00.000Z）
             if (timeStr.includes('-') && timeStr.includes('T')) {
                 try {
                     let t = new Date(timeStr);
@@ -165,7 +157,6 @@
                     }
                 } catch(e){}
             }
-            // 如果原本已經是好好的 M/D HH:mm 就直接回傳
             return timeStr;
         }
 
@@ -181,18 +172,22 @@
                 if (e.type === "便便 💩" || e.type === "尿尿 💧") labelColor = "#78350f";
                 if (e.type === "體重 ⚖️") labelColor = "#e11d48";
 
-                // 在這裡呼叫清洗函數，確保畫面顯示完美
                 let formattedTime = cleanDisplayTime(e.time);
 
+                // 為每條紀錄加上修改(✏️)和刪除(🗑️)按鈕，並傳入其專屬的 id
                 return '<div class="log-item">' +
                     '<div><b style="color:' + labelColor + ';">' + e.type + '</b><br><small style="color:#9ca3af;">' + formattedTime + '</small></div>' +
                     '<div style="display:flex; align-items:center; gap:10px;">' +
                     '<span style="font-weight:bold; color:#374151;">' + e.detail + '</span>' +
+                    '<div class="action-btns">' +
+                    '<button class="btn-action" onclick="editLog(\'' + e.id + '\', \'' + e.detail + '\')">✏️</button>' +
+                    '<button class="btn-action" onclick="deleteLog(\'' + e.id + '\')">🗑️</button>' +
+                    '</div>' +
                     '</div></div>';
             }).join("");
         }
 
-        // 發送函數
+        // 發送普通新增資料
         function sendToGoogleSheet(newData) {
             fetch(GAS_URL, {
                 method: 'POST',
@@ -201,10 +196,59 @@
                 body: JSON.stringify(newData)
             })
             .then(function() {
-                setTimeout(function() {
-                    fetchFromGoogleSheet();
-                    setCurrentTime();
-                }, 1500);
+                setTimeout(function() { fetchFromGoogleSheet(); setCurrentTime(); }, 1200);
+            });
+        }
+
+        // 🌟 新增：點擊 🗑️ 刪除按鈕觸發
+        function deleteLog(id) {
+            if (!id || id === "undefined") { alert("此紀錄無法刪除"); return; }
+            if (confirm("確定要【徹底刪除】呢條紀錄嗎？\n(Google Sheet 亦會同步刪除)")) {
+                document.getElementById('sync-status').innerText = "⏳ 正在雲端刪除...";
+                
+                fetch(GAS_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: "delete", id: String(id) })
+                })
+                .then(function() {
+                    // 本地先過濾掉，製造極速反應
+                    cloudLogs = cloudLogs.filter(function(log) { return String(log.id) !== String(id); });
+                    renderLogs();
+                    setTimeout(fetchFromGoogleSheet, 1500); // 1.5秒後重新讀取雲端對賬
+                });
+            }
+        }
+
+        // 🌟 新增：點擊 ✏️ 修改按鈕觸發
+        function editLog(id, oldDetail) {
+            if (!id || id === "undefined") { alert("此紀錄無法修改"); return; }
+            
+            // 彈出手機輸入框讓使用者填寫新內容
+            const newDetail = prompt("請輸入修改後的內容 / 份量：", oldDetail);
+            
+            // 如果使用者撳取消，或者冇入嘢，就終止
+            if (newDetail === null) return;
+            const cleanDetail = newDetail.trim();
+            if (!cleanDetail) return;
+
+            document.getElementById('sync-status').innerText = "⏳ 正在雲端修改...";
+
+            fetch(GAS_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: "edit", id: String(id), detail: cleanDetail })
+            })
+            .then(function() {
+                // 本地即時更新顯示
+                cloudLogs = cloudLogs.map(function(log) {
+                    if (String(log.id) === String(id)) { log.detail = cleanDetail; }
+                    return log;
+                });
+                renderLogs();
+                setTimeout(fetchFromGoogleSheet, 1500); // 1.5秒後重新讀取雲端對賬
             });
         }
 
@@ -213,14 +257,11 @@
             const type = document.getElementById('food-type').value;
             const amt = document.getElementById('food-amount').value.trim();
             if (!amt) return;
-
             const timeStr = getSelectedTimeStr();
             const dataItem = { id: String(Date.now()), time: timeStr, type: type, detail: amt };
-
             cloudLogs.unshift(dataItem);
             renderLogs();
             document.getElementById('food-amount').value = ''; 
-
             sendToGoogleSheet(dataItem);
         }
 
@@ -228,33 +269,25 @@
             e.preventDefault();
             const type = document.getElementById('poop-type').value;
             const status = document.getElementById('poop-status').value;
-
             const timeStr = getSelectedTimeStr();
             const dataItem = { id: String(Date.now()), time: timeStr, type: type, detail: status };
-
             cloudLogs.unshift(dataItem);
             renderLogs();
-
             sendToGoogleSheet(dataItem);
         }
 
-        // 新增！體重發送函數
         function addWeightLog(e) {
             e.preventDefault();
             const weightVal = document.getElementById('cat-weight').value.trim();
             if (!weightVal) return;
-
             const timeStr = getSelectedTimeStr();
             const dataItem = { id: String(Date.now()), time: timeStr, type: "體重 ⚖️", detail: weightVal + " kg" };
-
             cloudLogs.unshift(dataItem);
             renderLogs();
             document.getElementById('cat-weight').value = ''; 
-
             sendToGoogleSheet(dataItem);
         }
 
-        // 初始化：一開機就設定現在時間並載入雲端
         setCurrentTime();
         fetchFromGoogleSheet();
     </script>
