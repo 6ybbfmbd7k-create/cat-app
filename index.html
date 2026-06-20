@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🐱 Liz 全員同步(可選時間版)</title>
+    <title>🐱 Liz 全員同步(完美時間版)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
         body { background: #f9fafb; padding: 15px; display: flex; justify-content: center; }
@@ -31,7 +31,7 @@
 
     <div class="app-container">
         <div id="sync-status" class="status-badge">🔄 正在連線讀取雲端紀錄...</div>
-        <div class="header">🐱 Liz 日常紀錄 (可選時間版)</div>
+        <div class="header">🐱 Liz 日常紀錄 (完美時間版)</div>
 
         <div class="box time-box">
             <div class="title" style="color: #1e40af;">📅 紀錄時間設定 (預設為現在時間)</div>
@@ -106,21 +106,25 @@
         // 自動將時間輸入框設定為當前手機時間
         function setCurrentTime() {
             const now = new Date();
-            // 修正時區偏移，轉換為 datetime-local 所需的 YYYY-MM-DDTHH:mm 格式
             const offset = now.getTimezoneOffset() * 60000;
             const localISOTime = (new Date(now - offset)).toISOString().slice(0, 16);
             document.getElementById('global-time').value = localISOTime;
         }
 
-        // 格式化選取的時間，轉成方便閱讀的 "M/D HH:mm"
+        // 🌟 終極修正：將使用者選取的時間，百分之百強制格式化為乾淨的 "M/D HH:mm" 
         function getSelectedTimeStr() {
             const userTimeVal = document.getElementById('global-time').value;
-            if (!userTimeVal) {
-                const now = new Date();
-                return (now.getMonth() + 1) + '/' + now.getDate() + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
-            }
-            const t = new Date(userTimeVal);
-            return (t.getMonth() + 1) + '/' + t.getDate() + ' ' + String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0');
+            let t = userTimeVal ? new Date(userTimeVal) : new Date();
+            
+            // 如果手機解讀失敗變成 NaN，就用當前時間頂替
+            if (isNaN(t.getTime())) { t = new Date(); }
+
+            const month = t.getMonth() + 1;
+            const date = t.getDate();
+            const hours = String(t.getHours()).padStart(2, '0');
+            const minutes = String(t.getMinutes()).padStart(2, '0');
+            
+            return month + '/' + date + ' ' + hours + ':' + minutes;
         }
 
         // 從 Google Sheet 拿取所有紀錄
@@ -144,6 +148,27 @@
             });
         }
 
+        // 🌟 額外修正：讀取歷史紀錄時，如果從 Google 拿回來的時間物件帶有 T 或奇怪字符，在此進行二次清洗
+        function cleanDisplayTime(timeInput) {
+            if (!timeInput) return "";
+            let timeStr = String(timeInput);
+            // 如果是從 Google Sheet 倒讀出來的 ISO 格式（例如 2026-06-20T12:30:00.000Z）
+            if (timeStr.includes('-') && timeStr.includes('T')) {
+                try {
+                    let t = new Date(timeStr);
+                    if (!isNaN(t.getTime())) {
+                        const month = t.getMonth() + 1;
+                        const date = t.getDate();
+                        const hours = String(t.getHours()).padStart(2, '0');
+                        const minutes = String(t.getMinutes()).padStart(2, '0');
+                        return month + '/' + date + ' ' + hours + ':' + minutes;
+                    }
+                } catch(e){}
+            }
+            // 如果原本已經是好好的 M/D HH:mm 就直接回傳
+            return timeStr;
+        }
+
         function renderLogs() {
             const area = document.getElementById('log-list-area');
             if (!cloudLogs || cloudLogs.length === 0) {
@@ -156,8 +181,11 @@
                 if (e.type === "便便 💩" || e.type === "尿尿 💧") labelColor = "#78350f";
                 if (e.type === "體重 ⚖️") labelColor = "#e11d48";
 
+                // 在這裡呼叫清洗函數，確保畫面顯示完美
+                let formattedTime = cleanDisplayTime(e.time);
+
                 return '<div class="log-item">' +
-                    '<div><b style="color:' + labelColor + ';">' + e.type + '</b><br><small style="color:#9ca3af;">' + e.time + '</small></div>' +
+                    '<div><b style="color:' + labelColor + ';">' + e.type + '</b><br><small style="color:#9ca3af;">' + formattedTime + '</small></div>' +
                     '<div style="display:flex; align-items:center; gap:10px;">' +
                     '<span style="font-weight:bold; color:#374151;">' + e.detail + '</span>' +
                     '</div></div>';
@@ -173,7 +201,6 @@
                 body: JSON.stringify(newData)
             })
             .then(function() {
-                // 上傳後刷新雲端，並將時間框重設回「最新的現在時間」
                 setTimeout(function() {
                     fetchFromGoogleSheet();
                     setCurrentTime();
@@ -211,6 +238,7 @@
             sendToGoogleSheet(dataItem);
         }
 
+        // 新增！體重發送函數
         function addWeightLog(e) {
             e.preventDefault();
             const weightVal = document.getElementById('cat-weight').value.trim();
