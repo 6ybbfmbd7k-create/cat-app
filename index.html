@@ -3,180 +3,130 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🐱 Liz 日常記錄 (經典超流暢版)</title>
+    <title>🐱 Liz 基本紀錄版</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
-        body { background: #f9fafb; padding: 15px; display: flex; justify-content: center; -webkit-tap-highlight-color: transparent; }
-        .app-container { width: 100%; max-width: 400px; background: white; border-radius: 16px; border: 1px solid #f3f4f6; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05); position: relative; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
+        body { background: #f9fafb; padding: 15px; display: flex; justify-content: center; }
+        .app-container { width: 100%; max-width: 400px; background: white; border-radius: 16px; border: 1px solid #f3f4f6; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
         .header { background: #fb923c; color: white; text-align: center; padding: 16px; font-weight: bold; font-size: 20px; }
-        .profile-card { background: #fff7ed; margin: 12px; padding: 12px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #ffedd5; }
-        .profile-info { display: flex; align-items: center; gap: 12px; }
-        .avatar { width: 48px; height: 48px; background: #fed7aa; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; }
-        .profile-name { font-size: 16px; font-weight: bold; color: #1f2937; }
-        .profile-weight { font-size: 13px; color: #e11d48; font-weight: bold; background: #ffe4e6; padding: 2px 8px; border-radius: 20px; }
-        .tabs { display: flex; gap: 6px; padding: 0 12px; margin-bottom: 8px; }
-        .tab-btn { flex: 1; padding: 12px 4px; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; background: #e5e7eb; color: #4b5563; text-align: center; }
-        .tab-btn.active-feed { background: #fb923c; color: white; }
-        .tab-btn.active-poop { background: #78350f; color: white; }
-        .tab-btn.active-weight { background: #e11d48; color: white; }
-        .form-section { padding: 0 12px 12px 12px; }
-        .log-form { background: #f9fafb; padding: 12px; border-radius: 12px; display: flex; flex-direction: column; gap: 8px; }
-        .label-text { font-size: 10px; color: #9ca3af; display: block; margin-bottom: 2px; }
-        .flex-row { display: flex; gap: 8px; width: 100%; align-items: center; }
-        .input-text { width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; background: white; }
-        .select-box { padding: 8px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; background: white; }
-        .btn-submit { padding: 8px 16px; border: none; border-radius: 8px; color: white; font-weight: bold; font-size: 14px; cursor: pointer; min-width: 60px; text-align: center; }
+        .box { background: #f9fafb; margin: 12px; padding: 12px; border-radius: 12px; border: 1px solid #e5e7eb; }
+        .title { font-size: 14px; font-weight: bold; margin-bottom: 8px; color: #374151; }
+        .flex-row { display: flex; gap: 8px; margin-bottom: 8px; }
+        .input-text, .select-box { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; background: white; }
+        .btn-submit { width: 100%; padding: 12px; border: none; border-radius: 8px; color: white; font-weight: bold; font-size: 15px; cursor: pointer; }
         .btn-feed { background: #fb923c; }
         .btn-poop { background: #78350f; }
-        .btn-weight { background: #e11d48; }
         .history-section { border-top: 1px solid #f3f4f6; padding: 12px; }
-        .history-title { font-size: 12px; font-weight: bold; color: #9ca3af; margin-bottom: 8px; }
         .log-list { max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
-        .log-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 8px 12px; border-radius: 12px; border: 1px solid #f3f4f6; }
-        .log-left { display: flex; align-items: center; gap: 8px; }
-        .dot { width: 6px; height: 6px; border-radius: 50%; }
-        .dot-feed { background: #fb923c; }
-        .dot-poop { background: #78350f; }
-        .dot-weight { background: #e11d48; }
-        .log-title { font-size: 13px; font-weight: bold; color: #1f2937; }
-        .log-time { font-size: 10px; color: #9ca3af; }
-        .log-detail { font-size: 13px; font-weight: bold; }
-        .text-feed { color: #f97316; }
-        .text-poop { color: #78350f; }
-        .text-weight { color: #e11d48; }
+        .log-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px 12px; border-radius: 12px; border: 1px solid #f3f4f6; font-size: 13px; }
         .btn-del { color: #d1d5db; border: none; background: none; font-size: 12px; cursor: pointer; padding: 4px; }
-        .empty-text { text-align: center; font-size: 13px; color: #9ca3af; padding: 16px 0; }
-        .cloud-status { text-align: center; font-size: 11px; color: #16a34a; padding: 4px; background: #f0fdf4; border-radius: 4px; margin-bottom: 4px; font-weight: bold; }
     </style>
 </head>
 <body>
+
     <div class="app-container">
-        <div class="cloud-status">📱 本地安全流暢模式已啟動</div>
-        <div class="header">🐱 Liz 日常全方位記錄</div>
-        <div class="profile-card">
-            <div class="profile-info">
-                <div class="avatar">🐱</div>
-                <div>
-                    <div class="profile-name">Liz</div>
-                    <div style="font-size:11px;color:#6b7280;">獨立健康儲存</div>
-                </div>
-            </div>
-            <div id="latest-weight-display">
-                <span class="profile-weight">⚖️ -- kg</span>
-            </div>
-        </div>
-        
-        <div class="tabs">
-            <button id="tab-feed" class="tab-btn active-feed" onclick="switchTab('feeding')">🍖 餵食紀錄</button>
-            <button id="tab-poop" class="tab-btn" onclick="switchTab('poop')">💩 鏟屎健康</button>
-            <button id="tab-weight" class="tab-btn" onclick="switchTab('weight')">⚖️ 體重登記</button>
-        </div>
-        <div class="form-section">
-            <form class="log-form" onsubmit="addLog(event)">
+        <div class="header">🐱 Liz 日常紀錄 (基本步版)</div>
+
+        <div class="box">
+            <div class="title">🍖 新增餵食紀錄</div>
+            <form onsubmit="addFeedLog(event)">
                 <div class="flex-row">
-                    <div style="flex:1"><label class="label-text">自訂日期</label><input type="date" id="custom-date" class="input-text"></div>
-                    <div style="width:35%"><label class="label-text">時間</label><input type="time" id="custom-time" class="input-text"></div>
+                    <select id="food-type" class="select-box" style="width: 100px;">
+                        <option>乾糧</option>
+                        <option>濕糧</option>
+                        <option>零食</option>
+                        <option>飲水</option>
+                    </select>
+                    <input type="text" id="food-amount" placeholder="輸入份量 (例如: 40g)" class="input-text" required>
                 </div>
-                <div class="flex-row" id="form-dynamic-inputs"></div>
+                <button type="submit" class="btn-submit btn-feed">儲存餵食 🍖</button>
+            </form>
+        </div>
+
+        <div class="box">
+            <div class="title">💩 新增鏟屎紀錄</div>
+            <form onsubmit="addPoopLog(event)">
+                <div class="flex-row">
+                    <select id="poop-type" class="select-box">
+                        <option>便便 💩</option>
+                        <option>尿尿 💧</option>
+                    </select>
+                    <select id="poop-status" class="select-box">
+                        <option>正常 🪵</option>
+                        <option>肚痾 🌊</option>
+                        <option>偏硬 🪨</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-submit btn-poop">儲存鏟屎 💩</button>
             </form>
         </div>
 
         <div class="history-section">
-            <div class="history-title">歷史綜合紀錄</div>
+            <div class="title" style="color: #9ca3af;">綜合歷史紀錄</div>
             <div class="log-list" id="log-list-area"></div>
         </div>
     </div>
 
     <script>
-        let logs = JSON.parse(localStorage.getItem('cat_all_logs')) || [];
-        let activeTab = 'feeding';
-
-        function initDateTime() {
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            
-            document.getElementById('custom-date').value = ${year}-${month}-${day};
-            document.getElementById('custom-time').value = ${hours}:${minutes};
-        }
-
-        function switchTab(tabName) {
-            activeTab = tabName;
-            document.getElementById('tab-feed').className = "tab-btn";
-            document.getElementById('tab-poop').className = "tab-btn";
-            document.getElementById('tab-weight').className = "tab-btn";
-            
-            if (tabName === 'feeding') { document.getElementById('tab-feed').className = "tab-btn active-feed"; } 
-            else if (tabName === 'poop') { document.getElementById('tab-poop').className = "tab-btn active-poop"; } 
-            else if (tabName === 'weight') { document.getElementById('tab-weight').className = "tab-btn active-weight"; }
-            renderInputs();
-        }
-
-        function renderInputs() {
-            const container = document.getElementById('form-dynamic-inputs');
-            if (activeTab === 'feeding') {
-                container.innerHTML = '<select id="food-type" class="select-box" style="width:80px"><option>乾糧</option><option>濕糧</option><option>零食</option><option>飲水</option></select><input type="text" id="food-amount" placeholder="份量 (e.g. 40g)" class="input-text" style="flex:1"><button type="submit" class="btn-submit btn-feed">加</button>';
-            } else if (activeTab === 'poop') {
-                container.innerHTML = '<select id="poop-type" class="select-box" style="flex:1"><option>便便 💩</option><option>尿尿 💧</option></select><select id="poop-status" class="select-box" style="flex:1"><option>正常 🪵</option><option>肚痾/偏軟 🌊</option><option>太硬/便秘 🪨</option></select><button type="submit" class="btn-submit btn-poop">加</button>';
-            } else if (activeTab === 'weight') {
-                container.innerHTML = '<input type="number" step="0.01" id="cat-weight-input" placeholder="體重 (e.g. 4.5)" class="input-text" style="flex:1"><span style="font-size:14px;font-weight:bold;margin-right:4px;">kg</span><button type="submit" class="btn-submit btn-weight">加</button>';
-            }
-        }
-
-        function updateWeightDisplay() {
-            let weightLog = logs.find(function(l) { return l.category === 'weight'; });
-            if (weightLog) { document.getElementById('latest-weight-display').innerHTML = '<span class="profile-weight">⚖️ ' + weightLog.detail + ' kg</span>'; } 
-            else { document.getElementById('latest-weight-display').innerHTML = '<span class="profile-weight">⚖️ -- kg</span>'; }
-        }
+        // 資料 100% 穩陣儲喺各自嘅手機入面
+        let logs = JSON.parse(localStorage.getItem('liz_basic_logs')) || [];
 
         function renderLogs() {
             const area = document.getElementById('log-list-area');
-            if (!logs || logs.length === 0) { area.innerHTML = '<p class="empty-text">未有任何紀錄，請新增第一條</p>'; return; }
+            if (logs.length === 0) {
+                area.innerHTML = '<p style="text-align:center; color:#9ca3af; padding:15px; font-size:13px;">未有任何紀錄</p>';
+                return;
+            }
             area.innerHTML = logs.map(function(e) {
-                let dotClass = "dot-feed"; let textClass = "text-feed";
-                if (e.category === 'poop') { dotClass = "dot-poop"; textClass = "text-poop"; }
-                if (e.category === 'weight') { dotClass = "dot-weight"; textClass = "text-weight"; }
-                let displayType = e.category === 'weight' ? "⚖️ 體重登記" : e.type;
-                let displayDetail = e.category === 'weight' ? e.detail + " kg" : e.detail;
-                return '<div class="log-item"><div class="log-left"><span class="dot ' + dotClass + '"></span><div><div class="log-title">' + displayType + '</div><div class="log-time">' + String(e.date).substring(0,10) + ' @ ' + e.time + '</div></div></div><div style="display:flex;align-items:center;gap:8px"><span class="log-detail ' + textClass + '">' + displayDetail + '</span><button class="btn-del" onclick="deleteLog(\'' + e.id + '\')">🗑️</button></div></div>';
+                return '<div class="log-item">' +
+                    '<div><b>' + e.type + '</b><br><small style="color:#9ca3af;">' + e.time + '</small></div>' +
+                    '<div style="display:flex; align-items:center; gap:10px;">' +
+                    '<span style="font-weight:bold; color:#fb923c;">' + e.detail + '</span>' +
+                    '<button class="btn-del" onclick="deleteLog(\'' + e.id + '\')">🗑️</button>' +
+                    '</div></div>';
             }).join("");
         }
 
-        function addLog(e) {
-            e.preventDefault(); 
-            const rawDate = document.getElementById('custom-date').value; 
-            const n = document.getElementById('custom-time').value;
-            let a = {id:String(Date.now()), date:rawDate, time:n, category:activeTab, type:"", detail:""};
-            
-            if (activeTab === "feeding") {
-                const amt = document.getElementById('food-amount').value.trim(); if(!amt) return;
-                a.type = document.getElementById('food-type').value; a.detail = amt;
-            } else if (activeTab === "poop") {
-                a.type = document.getElementById('poop-type').value; a.detail = document.getElementById('poop-status').value;
-            } else if (activeTab === "weight") {
-                const wg = document.getElementById('cat-weight-input').value.trim(); if(!wg) return;
-                a.type = "體重"; a.detail = wg;
-            }
-            
-            logs.unshift(a);
-            localStorage.setItem('cat_all_logs', JSON.stringify(logs));
-            renderLogs(); updateWeightDisplay();
-            initDateTime(); switchTab(activeTab);
+        function addFeedLog(e) {
+            e.preventDefault();
+            const type = document.getElementById('food-type').value;
+            const amt = document.getElementById('food-amount').value.trim();
+            if (!amt) return;
+
+            const now = new Date();
+            const timeStr = (now.getMonth() + 1) + '/' + now.getDate() + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+
+            logs.unshift({ id: String(Date.now()), time: timeStr, type: type, detail: amt });
+            localStorage.setItem('liz_basic_logs', JSON.stringify(logs));
+            document.getElementById('food-amount').value = ''; // 清空輸入框
+            renderLogs();
+            alert('餵食紀錄已儲存！');
+        }
+
+        function addPoopLog(e) {
+            e.preventDefault();
+            const type = document.getElementById('poop-type').value;
+            const status = document.getElementById('poop-status').value;
+
+            const now = new Date();
+            const timeStr = (now.getMonth() + 1) + '/' + now.getDate() + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+
+            logs.unshift({ id: String(Date.now()), time: timeStr, type: type, detail: status });
+            localStorage.setItem('liz_basic_logs', JSON.stringify(logs));
+            renderLogs();
+            alert('鏟屎紀錄已儲存！');
         }
 
         function deleteLog(id) {
-            if (confirm("確定要刪除呢條紀錄？")) {
+            if (confirm("確定要刪除呢條紀錄嗎？")) {
                 logs = logs.filter(function(t) { return t.id !== id; });
-                localStorage.setItem('cat_all_logs', JSON.stringify(logs));
-                renderLogs(); updateWeightDisplay();
+                localStorage.setItem('liz_basic_logs', JSON.stringify(logs));
+                renderLogs();
             }
         }
 
-        // 開機即時載入，零阻礙
-        initDateTime(); switchTab("feeding"); renderLogs(); updateWeightDisplay();
+        // 一開機立刻顯示歷史紀錄
+        renderLogs();
     </script>
 </body>
 </html>
