@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🐱 Liz 基本紀錄版</title>
+    <title>🐱 Liz 基本紀錄聯網版</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
         body { background: #f9fafb; padding: 15px; display: flex; justify-content: center; }
@@ -19,13 +19,14 @@
         .history-section { border-top: 1px solid #f3f4f6; padding: 12px; }
         .log-list { max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
         .log-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px 12px; border-radius: 12px; border: 1px solid #f3f4f6; font-size: 13px; }
-        .btn-del { color: #d1d5db; border: none; background: none; font-size: 12px; cursor: pointer; padding: 4px; }
+        .status-text { text-align: center; font-size: 11px; color: #6b7280; padding: 4px; background: #f3f4f6; }
     </style>
 </head>
 <body>
 
     <div class="app-container">
-        <div class="header">🐱 Liz 日常紀錄 (基本步版)</div>
+        <div class="status-text">☁️ Google Sheet 聯網同步模式已準備</div>
+        <div class="header">🐱 Liz 日常紀錄 (聯網基本版)</div>
 
         <div class="box">
             <div class="title">🍖 新增餵食紀錄</div>
@@ -39,7 +40,7 @@
                     </select>
                     <input type="text" id="food-amount" placeholder="輸入份量 (例如: 40g)" class="input-text" required>
                 </div>
-                <button type="submit" class="btn-submit btn-feed">儲存餵食 🍖</button>
+                <button type="submit" id="btn-feed-submit" class="btn-submit btn-feed">儲存餵食 🍖</button>
             </form>
         </div>
 
@@ -57,34 +58,51 @@
                         <option>偏硬 🪨</option>
                     </select>
                 </div>
-                <button type="submit" class="btn-submit btn-poop">儲存鏟屎 💩</button>
+                <button type="submit" id="btn-poop-submit" class="btn-submit btn-poop">儲存鏟屎 💩</button>
             </form>
         </div>
 
         <div class="history-section">
-            <div class="title" style="color: #9ca3af;">綜合歷史紀錄</div>
+            <div class="title" style="color: #9ca3af;">本機發送緩存</div>
             <div class="log-list" id="log-list-area"></div>
         </div>
     </div>
 
     <script>
-        // 資料 100% 穩陣儲喺各自嘅手機入面
+        // 【⚠️ 重要設定】請把下面引號內換成你的 Google GAS 網址：
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzn4cnWWcW7dfBp6FO7WuQ0i2HoKx6FId5nLkOK2A3ce47Zk85MdkpbLNaYu1VSrgEl/exec";
+
         let logs = JSON.parse(localStorage.getItem('liz_basic_logs')) || [];
 
         function renderLogs() {
             const area = document.getElementById('log-list-area');
-            if (logs.length === 0) {
-                area.innerHTML = '<p style="text-align:center; color:#9ca3af; padding:15px; font-size:13px;">未有任何紀錄</p>';
+            if (logs.length === 0) { area.innerHTML = '<p style="text-align:center; color:#9ca3af; padding:15px; font-size:13px;">未有任何紀錄</p>'; return; }
+            area.innerHTML = logs.map(function(e) {
+                return '<div class="log-item"><div><b>' + e.type + '</b><br><small style="color:#9ca3af;">' + e.time + '</small></div>' +
+                    '<span style="font-weight:bold; color:#fb923c;">' + e.detail + '</span></div>';
+            }).join("");
+        }
+
+        // 核心發送函數：老實、不卡死網頁
+        function sendToGoogleSheet(newData) {
+            if (GAS_URL === "YOUR_GAS_URL_HERE" || !GAS_URL) {
+                alert("請先在代碼中填入你的 Google Sheet GAS 網址！");
                 return;
             }
-            area.innerHTML = logs.map(function(e) {
-                return '<div class="log-item">' +
-                    '<div><b>' + e.type + '</b><br><small style="color:#9ca3af;">' + e.time + '</small></div>' +
-                    '<div style="display:flex; align-items:center; gap:10px;">' +
-                    '<span style="font-weight:bold; color:#fb923c;">' + e.detail + '</span>' +
-                    '<button class="btn-del" onclick="deleteLog(\'' + e.id + '\')">🗑️</button>' +
-                    '</div></div>';
-            }).join("");
+            
+            // 用 fetch 暗中傳送，就算網絡慢，按鈕也不會卡死
+            fetch(GAS_URL, {
+                method: 'POST',
+                mode: 'no-cors', // 確保不會因為跨網域問題而報錯
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newData)
+            })
+            .then(function() {
+                console.log("資料已成功排隊送上雲端");
+            })
+            .catch(function(err) {
+                console.error("發送失敗:", err);
+            });
         }
 
         function addFeedLog(e) {
@@ -95,12 +113,17 @@
 
             const now = new Date();
             const timeStr = (now.getMonth() + 1) + '/' + now.getDate() + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+            const dataItem = { id: String(Date.now()), time: timeStr, type: type, detail: amt };
 
-            logs.unshift({ id: String(Date.now()), time: timeStr, type: type, detail: amt });
+            // 1. 儲存本地
+            logs.unshift(dataItem);
             localStorage.setItem('liz_basic_logs', JSON.stringify(logs));
-            document.getElementById('food-amount').value = ''; // 清空輸入框
+            document.getElementById('food-amount').value = ''; 
             renderLogs();
-            alert('餵食紀錄已儲存！');
+
+            // 2. 聯網同步送到 Google Sheet
+            sendToGoogleSheet(dataItem);
+            alert('紀錄已儲存，正在同步上傳至 Google Sheet！');
         }
 
         function addPoopLog(e) {
@@ -110,22 +133,18 @@
 
             const now = new Date();
             const timeStr = (now.getMonth() + 1) + '/' + now.getDate() + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+            const dataItem = { id: String(Date.now()), time: timeStr, type: type, detail: status };
 
-            logs.unshift({ id: String(Date.now()), time: timeStr, type: type, detail: status });
+            // 1. 儲存本地
+            logs.unshift(dataItem);
             localStorage.setItem('liz_basic_logs', JSON.stringify(logs));
             renderLogs();
-            alert('鏟屎紀錄已儲存！');
+
+            // 2. 聯網同步送到 Google Sheet
+            sendToGoogleSheet(dataItem);
+            alert('紀錄已儲存，正在同步上傳至 Google Sheet！');
         }
 
-        function deleteLog(id) {
-            if (confirm("確定要刪除呢條紀錄嗎？")) {
-                logs = logs.filter(function(t) { return t.id !== id; });
-                localStorage.setItem('liz_basic_logs', JSON.stringify(logs));
-                renderLogs();
-            }
-        }
-
-        // 一開機立刻顯示歷史紀錄
         renderLogs();
     </script>
 </body>
