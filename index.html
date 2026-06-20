@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🐱 Liz 日常全方位記錄 (流暢無阻穩定版)</title>
+    <title>🐱 Liz 日常全方位記錄 (經典超流暢版)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
@@ -49,19 +49,19 @@
         .text-weight { color: #e11d48; }
         .btn-del { color: #d1d5db; border: none; background: none; font-size: 12px; cursor: pointer; padding: 4px; }
         .empty-text { text-align: center; font-size: 13px; color: #9ca3af; padding: 16px 0; }
-        .cloud-status { text-align: center; font-size: 11px; color: #16a34a; padding: 4px; background: #f0fdf4; border-radius: 4px; margin-bottom: 4px; font-weight: bold; }
+        .cloud-status { text-align: center; font-size: 11px; color: #4b5563; padding: 4px; background: #f3f4f6; border-radius: 4px; margin-bottom: 4px; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="app-container">
-        <div id="cloud-status-bar" class="cloud-status">🟢 智能全天候安全模式已啟動</div>
+        <div class="cloud-status">📱 本地極速安全模式 (已暫停雲端同步)</div>
         <div class="header">🐱 Liz 日常全方位記錄</div>
         <div class="profile-card">
             <div class="profile-info">
                 <div class="avatar">🐱</div>
                 <div>
                     <div class="profile-name">Liz</div>
-                    <div style="font-size:11px;color:#6b7280;">健康共同守護</div>
+                    <div style="font-size:11px;color:#6b7280;">健康獨立記錄</div>
                 </div>
             </div>
             <div id="latest-weight-display">
@@ -98,24 +98,13 @@
     </div>
 
     <script>
-        // ⚠️ 請在此處填入你的 Google Apps Script 網址 ⚠️
-        const API_URL = "https://script.google.com/macros/s/AKfycbyWrSfnsINj_a3rLwSW00DJHsncJu3aVfiuLE7thdahPpC1bHkU0LynIMbMtMEynIWE/exec"; 
-
         let logs = JSON.parse(localStorage.getItem('cat_all_logs')) || [];
         let activeTab = 'feeding';
         let myChart = null;
 
-        function updateStatus(text, bg, color) { 
-            const bar = document.getElementById('cloud-status-bar');
-            bar.innerText = text;
-            bar.style.backgroundColor = bg;
-            bar.style.color = color;
-        }
-        
         function getOffsetDate(offset) { const d = new Date(); d.setDate(d.getDate() + offset); return d.toISOString().split('T')[0]; }
         
         function initDateTime() {
-            // 【終極修正】強制拆開提取本地時間，阻斷任何手機系統引起的日期格式錯誤
             const now = new Date();
             const year = now.getFullYear();
             const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -125,23 +114,6 @@
             
             document.getElementById('custom-date').value = ${year}-${month}-${day};
             document.getElementById('custom-time').value = ${hours}:${minutes};
-        }
-
-        // 採用最安全嘅無阻礙背景同步，絕不卡死手機介面
-        async function fetchLogs() {
-            if(!API_URL || API_URL.includes("換成你") || API_URL === "") return;
-            try {
-                // 用安全模式讀取雲端（如果 CROS 失敗也會自動跳過，絕不阻礙用戶輸入）
-                let response = await fetch(API_URL);
-                let cloudLogs = await response.json();
-                if(cloudLogs && cloudLogs.length > 0) {
-                    logs = cloudLogs;
-                    localStorage.setItem('cat_all_logs', JSON.stringify(logs));
-                    renderLogs(); updateChart(); updateWeightDisplay();
-                }
-            } catch (e) {
-                // 即使出錯也安靜跳過，確保本地 100% 可用
-            }
         }
 
         function switchTab(tabName) {
@@ -156,6 +128,7 @@
             renderInputs();
         }
 
+        // 0秒生成輸入框，絕對不可能卡死
         function renderInputs() {
             const container = document.getElementById('form-dynamic-inputs');
             if (activeTab === 'feeding') {
@@ -210,11 +183,11 @@
             }
         }
 
-        async function addLog(e) {
+        function addLog(e) {
             e.preventDefault(); 
             const rawDate = document.getElementById('custom-date').value; 
             const n = document.getElementById('custom-time').value;
-            let a = {action:"add", id:String(Date.now()), date:rawDate, time:n, category:activeTab, type:"", detail:""};
+            let a = {id:String(Date.now()), date:rawDate, time:n, category:activeTab, type:"", detail:""};
             
             if (activeTab === "feeding") {
                 const amt = document.getElementById('food-amount').value.trim(); if(!amt) return;
@@ -226,44 +199,22 @@
                 a.type = "體重"; a.detail = wg;
             }
             
-            // 1. 本地即時反應，體驗極致流暢
             logs.unshift(a);
             localStorage.setItem('cat_all_logs', JSON.stringify(logs));
             renderLogs(); updateChart(); updateWeightDisplay();
             initDateTime(); switchTab(activeTab);
-
-            // 2. 採用絕對不會阻礙手機運作的盲投模式發送至雲端
-            if(!API_URL || API_URL.includes("換成你") || API_URL === "") return;
-            try {
-                updateStatus("⚡ 正在同步雲端...", "#fffbeb", "#d97706");
-                // 使用 no-cors 確保網頁版與主畫面版有最高的兼容度與速度
-                fetch(API_URL, {
-                    method: "POST",
-                    mode: "no-cors",
-                    body: JSON.stringify(a)
-                });
-                setTimeout(() => { updateStatus("🟢 資料已安全儲存", "#f0fdf4", "#16a34a"); }, 800);
-            } catch (err) {
-                setTimeout(() => { updateStatus("🟢 資料已安全儲存", "#f0fdf4", "#16a34a"); }, 800);
-            }
         }
 
-        async function deleteLog(id) {
+        function deleteLog(id) {
             if (confirm("確定要刪除呢條紀錄？")) {
                 logs = logs.filter(function(t) { return t.id !== id; });
                 localStorage.setItem('cat_all_logs', JSON.stringify(logs));
                 renderLogs(); updateChart(); updateWeightDisplay();
-                
-                if(!API_URL || API_URL.includes("換成你") || API_URL === "") return;
-                try { fetch(API_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({action: "delete", id: id}) }); } catch (e) {}
             }
         }
 
-        // 強制第一時間載入全套介面與按鈕
+        // 開機初始化
         initDateTime(); switchTab("feeding"); renderLogs(); updateChart(); updateWeightDisplay();
-        
-        // 背景安靜同步
-        setTimeout(fetchLogs, 600);
     </script>
 </body>
 </html>
