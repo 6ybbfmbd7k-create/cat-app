@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🐱 Liz 日常全方位記錄 (經典超流暢版)</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>🐱 Liz 日常記錄 (經典超流暢版)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
         body { background: #f9fafb; padding: 15px; display: flex; justify-content: center; -webkit-tap-highlight-color: transparent; }
@@ -16,7 +15,7 @@
         .profile-name { font-size: 16px; font-weight: bold; color: #1f2937; }
         .profile-weight { font-size: 13px; color: #e11d48; font-weight: bold; background: #ffe4e6; padding: 2px 8px; border-radius: 20px; }
         .tabs { display: flex; gap: 6px; padding: 0 12px; margin-bottom: 8px; }
-        .tab-btn { flex: 1; padding: 10px 4px; border: none; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; background: #e5e7eb; color: #4b5563; text-align: center; }
+        .tab-btn { flex: 1; padding: 12px 4px; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; background: #e5e7eb; color: #4b5563; text-align: center; }
         .tab-btn.active-feed { background: #fb923c; color: white; }
         .tab-btn.active-poop { background: #78350f; color: white; }
         .tab-btn.active-weight { background: #e11d48; color: white; }
@@ -30,11 +29,9 @@
         .btn-feed { background: #fb923c; }
         .btn-poop { background: #78350f; }
         .btn-weight { background: #e11d48; }
-        .chart-section { padding: 12px; border-top: 1px solid #f3f4f6; background: #fdfdfd; }
-        .chart-container { background: white; border: 1px solid #e5e7eb; padding: 10px; border-radius: 12px; position: relative; width: 100%; height: 180px; }
         .history-section { border-top: 1px solid #f3f4f6; padding: 12px; }
         .history-title { font-size: 12px; font-weight: bold; color: #9ca3af; margin-bottom: 8px; }
-        .log-list { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+        .log-list { max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
         .log-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 8px 12px; border-radius: 12px; border: 1px solid #f3f4f6; }
         .log-left { display: flex; align-items: center; gap: 8px; }
         .dot { width: 6px; height: 6px; border-radius: 50%; }
@@ -49,19 +46,19 @@
         .text-weight { color: #e11d48; }
         .btn-del { color: #d1d5db; border: none; background: none; font-size: 12px; cursor: pointer; padding: 4px; }
         .empty-text { text-align: center; font-size: 13px; color: #9ca3af; padding: 16px 0; }
-        .cloud-status { text-align: center; font-size: 11px; color: #4b5563; padding: 4px; background: #f3f4f6; border-radius: 4px; margin-bottom: 4px; font-weight: bold; }
+        .cloud-status { text-align: center; font-size: 11px; color: #16a34a; padding: 4px; background: #f0fdf4; border-radius: 4px; margin-bottom: 4px; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="app-container">
-        <div class="cloud-status">📱 本地極速安全模式 (已暫停雲端同步)</div>
+        <div class="cloud-status">📱 本地安全流暢模式已啟動</div>
         <div class="header">🐱 Liz 日常全方位記錄</div>
         <div class="profile-card">
             <div class="profile-info">
                 <div class="avatar">🐱</div>
                 <div>
                     <div class="profile-name">Liz</div>
-                    <div style="font-size:11px;color:#6b7280;">健康獨立記錄</div>
+                    <div style="font-size:11px;color:#6b7280;">獨立健康儲存</div>
                 </div>
             </div>
             <div id="latest-weight-display">
@@ -84,13 +81,6 @@
             </form>
         </div>
 
-        <div class="chart-section">
-            <div class="history-title">📊 最近 7 日健康統計</div>
-            <div class="chart-container">
-                <canvas id="healthChart"></canvas>
-            </div>
-        </div>
-
         <div class="history-section">
             <div class="history-title">歷史綜合紀錄</div>
             <div class="log-list" id="log-list-area"></div>
@@ -100,10 +90,7 @@
     <script>
         let logs = JSON.parse(localStorage.getItem('cat_all_logs')) || [];
         let activeTab = 'feeding';
-        let myChart = null;
 
-        function getOffsetDate(offset) { const d = new Date(); d.setDate(d.getDate() + offset); return d.toISOString().split('T')[0]; }
-        
         function initDateTime() {
             const now = new Date();
             const year = now.getFullYear();
@@ -128,7 +115,6 @@
             renderInputs();
         }
 
-        // 0秒生成輸入框，絕對不可能卡死
         function renderInputs() {
             const container = document.getElementById('form-dynamic-inputs');
             if (activeTab === 'feeding') {
@@ -159,30 +145,6 @@
             }).join("");
         }
 
-        function updateChart() {
-            const last7Days = []; for (let i = 6; i >= 0; i--) { last7Days.push(getOffsetDate(-i)); }
-            const feedCounts = Array(7).fill(0); const poopCounts = Array(7).fill(0);
-            logs.forEach(function(log) {
-                let formattedDate = String(log.date).substring(0,10);
-                const dayIndex = last7Days.indexOf(formattedDate);
-                if (dayIndex !== -1) { 
-                    if (log.category === 'feeding') feedCounts[dayIndex] += 1; 
-                    if (log.category === 'poop') poopCounts[dayIndex] += 1; 
-                }
-            });
-            const labels = last7Days.map(function(dateStr) { return dateStr.substring(5); });
-            if (myChart) {
-                myChart.data.datasets[0].data = feedCounts; myChart.data.datasets[1].data = poopCounts; myChart.update();
-            } else {
-                const ctx = document.getElementById('healthChart').getContext('2d');
-                myChart = new Chart(ctx, {
-                    type: 'bar',
-                    data: { labels: labels, datasets: [ { label: '🍖 餵食', data: feedCounts, backgroundColor: '#fb923c', borderRadius: 4 }, { label: '💩 排泄', data: poopCounts, backgroundColor: '#78350f', borderRadius: 4 } ] },
-                    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10 } } }, x: { ticks: { font: { size: 10 } } } }, plugins: { legend: { labels: { boxWidth: 12, font: { size: 11 } } } } }
-                });
-            }
-        }
-
         function addLog(e) {
             e.preventDefault(); 
             const rawDate = document.getElementById('custom-date').value; 
@@ -201,7 +163,7 @@
             
             logs.unshift(a);
             localStorage.setItem('cat_all_logs', JSON.stringify(logs));
-            renderLogs(); updateChart(); updateWeightDisplay();
+            renderLogs(); updateWeightDisplay();
             initDateTime(); switchTab(activeTab);
         }
 
@@ -209,12 +171,12 @@
             if (confirm("確定要刪除呢條紀錄？")) {
                 logs = logs.filter(function(t) { return t.id !== id; });
                 localStorage.setItem('cat_all_logs', JSON.stringify(logs));
-                renderLogs(); updateChart(); updateWeightDisplay();
+                renderLogs(); updateWeightDisplay();
             }
         }
 
-        // 開機初始化
-        initDateTime(); switchTab("feeding"); renderLogs(); updateChart(); updateWeightDisplay();
+        // 開機即時載入，零阻礙
+        initDateTime(); switchTab("feeding"); renderLogs(); updateWeightDisplay();
     </script>
 </body>
 </html>
