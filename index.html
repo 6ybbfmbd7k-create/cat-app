@@ -38,20 +38,20 @@
         .id-stat-val { font-size: 15px; font-weight: bold; color: #431407; }
 
         .box { background: #f9fafb; margin: 0 0 12px 0; padding: 12px; border-radius: 12px; border: 1px solid #e5e7eb; }
-        .time-box { background: #eff6ff; border: 1px solid #bfdbfe; }
+        .time-box { background: #eff6ff; border: 1px solid #bfdbfe; padding: 8px 12px; margin-bottom: 10px; }
         
-        /* 📊 圖表外殼：鏟屎分頁的圖表調高到 65px，並且讓它霸佔整行 */
         .chart-box { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 6px 10px; margin-bottom: 10px; }
         
         .title { font-size: 14px; font-weight: bold; margin-bottom: 8px; color: #374151; }
+        .inline-title { font-size: 12px; font-weight: bold; color: #1e40af; margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
         .flex-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
         .input-text, .select-box, .input-time { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; background: white; }
-        .input-time { color: #1e40af; font-weight: bold; }
+        .input-time { color: #1e40af; font-weight: bold; padding: 6px 8px; }
         .btn-submit { width: 100%; padding: 12px; border: none; border-radius: 8px; color: white; font-weight: bold; font-size: 15px; cursor: pointer; }
         .btn-feed { background: #fb923c; }
         .btn-poop { background: #78350f; }
         .btn-weight { background: #e11d48; }
-        .btn-now { background: #3b82f6; color: white; padding: 10px; border: none; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; white-space: nowrap; }
+        .btn-now { background: #3b82f6; color: white; padding: 6px 12px; border: none; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; white-space: nowrap; }
         .history-section { border-top: 1px solid #f3f4f6; padding: 12px 0; }
         .log-list { max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
         .log-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px 12px; border-radius: 12px; border: 1px solid #f3f4f6; font-size: 13px; }
@@ -101,17 +101,18 @@
                 </div>
             </div>
             
-            <div class="box time-box">
-                <div class="title" style="color: #1e40af;">📅 紀錄時間設定 (預設為現在時間)</div>
-                <div class="flex-row">
-                    <input type="datetime-local" id="global-time" class="input-time">
-                    <button type="button" class="btn-now" onclick="setCurrentTime()">現在時間</button>
-                </div>
-            </div>
-            <p style="text-align: center; color: #9ca3af; font-size: 13px; margin-top: 20px;">💡 點擊左上角 ☰ 即可切換到各個紀錄頁面</p>
+            <p style="text-align: center; color: #9ca3af; font-size: 13px; margin-top: 40px;">💡 點擊左上角 ☰ 即可切換到各個紀錄頁面</p>
         </div>
 
         <div id="page-feed" class="page-content">
+            <div class="time-box">
+                <div class="inline-title">📅 餵食時間設定 (預設現在)</div>
+                <div class="flex-row" style="margin-bottom:0;">
+                    <input type="datetime-local" id="time-feed" class="input-time">
+                    <button type="button" class="btn-now" onclick="setCurrentTime('time-feed')">現在</button>
+                </div>
+            </div>
+
             <div class="box">
                 <div class="title">🍖 新增餵食紀錄</div>
                 <form onsubmit="addFeedLog(event)">
@@ -144,6 +145,14 @@
                 </div>
                 <div style="width: 100%; height: 65px; position: relative;">
                     <canvas id="poopChart"></canvas>
+                </div>
+            </div>
+
+            <div class="time-box">
+                <div class="inline-title">📅 鏟屎時間設定 (預設現在)</div>
+                <div class="flex-row" style="margin-bottom:0;">
+                    <input type="datetime-local" id="time-poop" class="input-time">
+                    <button type="button" class="btn-now" onclick="setCurrentTime('time-poop')">現在</button>
                 </div>
             </div>
 
@@ -180,6 +189,14 @@
                 </div>
                 <div style="flex-grow: 1; height: 50px; position: relative;">
                     <canvas id="weightChart"></canvas>
+                </div>
+            </div>
+
+            <div class="time-box">
+                <div class="inline-title">📅 體重時間設定 (預設現在)</div>
+                <div class="flex-row" style="margin-bottom:0;">
+                    <input type="datetime-local" id="time-weight" class="input-time">
+                    <button type="button" class="btn-now" onclick="setCurrentTime('time-weight')">現在</button>
                 </div>
             </div>
 
@@ -235,15 +252,23 @@
             toggleMenu();
         }
 
-        function setCurrentTime() {
+        // 🌟 【重構：支援針對指定輸入框設定當前時間】
+        function setCurrentTime(inputId) {
             const now = new Date();
             const offset = now.getTimezoneOffset() * 60000;
             const localISOTime = (new Date(now - offset)).toISOString().slice(0, 16);
-            document.getElementById('global-time').value = localISOTime;
+            if(inputId) {
+                document.getElementById(inputId).value = localISOTime;
+            } else {
+                if(document.getElementById('time-feed')) document.getElementById('time-feed').value = localISOTime;
+                if(document.getElementById('time-poop')) document.getElementById('time-poop').value = localISOTime;
+                if(document.getElementById('time-weight')) document.getElementById('time-weight').value = localISOTime;
+            }
         }
 
-        function getSelectedTimeStr() {
-            const userTimeVal = document.getElementById('global-time').value;
+        // 🌟 【重構：讀取特定頁面的時間，若無則用現在時間】
+        function getSelectedTimeStr(inputId) {
+            const userTimeVal = document.getElementById(inputId).value;
             let t = userTimeVal ? new Date(userTimeVal) : new Date();
             if (isNaN(t.getTime())) { t = new Date(); }
             const month = String(t.getMonth() + 1).padStart(2, '0');
@@ -333,7 +358,6 @@
                 if (weightValues[i] === null && lastKnownWeight !== null) { weightValues[i] = lastKnownWeight; }
             }
 
-            // 1. 渲染放大版鏟屎柱狀圖
             const ctxPoop = document.getElementById('poopChart');
             if (ctxPoop) {
                 if (myPoopChart) { myPoopChart.destroy(); }
@@ -355,7 +379,6 @@
                 });
             }
 
-            // 2. 渲染體重折線圖
             const ctxWeight = document.getElementById('weightChart');
             if (ctxWeight) {
                 if (myWeightChart) { myWeightChart.destroy(); }
@@ -503,11 +526,12 @@
             const type = document.getElementById('food-type').value;
             const amt = document.getElementById('food-amount').value.trim();
             if (!amt) return;
-            const timeStr = getSelectedTimeStr();
+            const timeStr = getSelectedTimeStr('time-feed'); // 🌟 讀取餵食專屬時間
             const dataItem = { id: String(Date.now()), time: timeStr, type: type, detail: amt };
             cloudLogs.unshift(dataItem);
             renderLogs();
             document.getElementById('food-amount').value = ''; 
+            setCurrentTime('time-feed'); // 儲存後重置為現在時間
             sendToGoogleSheet(dataItem);
         }
 
@@ -515,10 +539,11 @@
             e.preventDefault();
             const type = document.getElementById('poop-type').value;
             const status = document.getElementById('poop-status').value;
-            const timeStr = getSelectedTimeStr();
+            const timeStr = getSelectedTimeStr('time-poop'); // 🌟 讀取鏟屎專屬時間
             const dataItem = { id: String(Date.now()), time: timeStr, type: type, detail: status };
             cloudLogs.unshift(dataItem);
             renderLogs();
+            setCurrentTime('time-poop'); // 儲存後重置為現在時間
             sendToGoogleSheet(dataItem);
         }
 
@@ -526,14 +551,16 @@
             e.preventDefault();
             const weightVal = document.getElementById('cat-weight').value.trim();
             if (!weightVal) return;
-            const timeStr = getSelectedTimeStr();
+            const timeStr = getSelectedTimeStr('time-weight'); // 🌟 讀取體重專屬時間
             const dataItem = { id: String(Date.now()), time: timeStr, type: "體重 ⚖️", detail: weightVal + " kg" };
             cloudLogs.unshift(dataItem);
             renderLogs();
             document.getElementById('cat-weight').value = ''; 
+            setCurrentTime('time-weight'); // 儲存後重置為現在時間
             sendToGoogleSheet(dataItem);
         }
 
+        // 初始化所有時間輸入框
         setCurrentTime();
         fetchFromGoogleSheet(false);
     </script>
