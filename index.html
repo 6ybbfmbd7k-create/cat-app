@@ -105,6 +105,16 @@
         </div>
 
         <div id="page-feed" class="page-content">
+            <div class="chart-box">
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: bold; color: #c2410c; margin-bottom: 4px;">
+                    <span>📊 7日餵食份量趨勢</span>
+                    <div style="font-size: 10px;"><span style="color:#fb923c;">🟠乾</span> <span style="color:#22c55e;">🟢濕</span> <span style="color:#eab308;">🟡零</span> <span style="color:#3b82f6;">🔵水</span></div>
+                </div>
+                <div style="width: 100%; height: 65px; position: relative;">
+                    <canvas id="feedChart"></canvas>
+                </div>
+            </div>
+
             <div class="time-box">
                 <div class="inline-title">📅 餵食時間設定 (預設現在)</div>
                 <div class="flex-row" style="margin-bottom:0;">
@@ -233,12 +243,24 @@
         const GAS_URL = "https://script.google.com/macros/s/AKfycbxw8GYN5UFdvloq3gbD9eaT7O8mDPibIufrKPSHuOYNqWPUGwfQkiryCZE_0v1zlE9f/exec";
 
         let cloudLogs = [];
+        let myFeedChart = null;
         let myPoopChart = null;
         let myWeightChart = null;
 
         function toggleMenu() {
             document.getElementById('sidebar').classList.toggle('active');
             document.getElementById('overlay').classList.toggle('active');
+        }
+
+        // 輔助函數：從帶有單位的文字中提取純數字（例如 "40g" -> 40, "50ml" -> 50）
+        function extractNumber(str) {
+            if (!str) return 0;
+            let matched = String(str).match(/[\d.]+/);
+            if (matched) {
+                let num = parseFloat(matched[0]);
+                return isNaN(num) ? 0 : num;
+            }
+            return 0;
         }
 
         function switchPage(pageId, titleText, element) {
@@ -252,7 +274,6 @@
             toggleMenu();
         }
 
-        // 🌟 【重構：支援針對指定輸入框設定當前時間】
         function setCurrentTime(inputId) {
             const now = new Date();
             const offset = now.getTimezoneOffset() * 60000;
@@ -266,7 +287,6 @@
             }
         }
 
-        // 🌟 【重構：讀取特定頁面的時間，若無則用現在時間】
         function getSelectedTimeStr(inputId) {
             const userTimeVal = document.getElementById(inputId).value;
             let t = userTimeVal ? new Date(userTimeVal) : new Date();
@@ -329,6 +349,13 @@
                 dateLabels.push(mStr + '/' + dStr);
             }
 
+            // 餵食數據陣列
+            let dryFoodCounts = new Array(7).fill(0);
+            let wetFoodCounts = new Array(7).fill(0);
+            let snackCounts = new Array(7).fill(0);
+            let waterCounts = new Array(7).fill(0);
+
+            // 鏟屎體重數據陣列
             let poopCounts = new Array(7).fill(0);
             let peeCounts = new Array(7).fill(0);
             let weightValues = new Array(7).fill(null);
@@ -339,6 +366,13 @@
 
                 let idx = dateLabels.indexOf(logDate);
                 if (idx !== -1) {
+                    // 🌟 統計餵食份量 (自動抽取純數字累加)
+                    if (log.type === "乾糧") { dryFoodCounts[idx] += extractNumber(log.detail); }
+                    if (log.type === "濕糧") { wetFoodCounts[idx] += extractNumber(log.detail); }
+                    if (log.type === "零食") { snackCounts[idx] += extractNumber(log.detail); }
+                    if (log.type === "飲水") { waterCounts[idx] += extractNumber(log.detail); }
+
+                    // 統計鏟屎體重
                     if (log.type === "便便 💩") { poopCounts[idx]++; }
                     if (log.type === "尿尿 💧") { peeCounts[idx]++; }
                     if (log.type === "體重 ⚖️") {
@@ -358,6 +392,31 @@
                 if (weightValues[i] === null && lastKnownWeight !== null) { weightValues[i] = lastKnownWeight; }
             }
 
+            // 🌟 1. 渲染新增的餵食疊加柱狀圖
+            const ctxFeed = document.getElementById('feedChart');
+            if (ctxFeed) {
+                if (myFeedChart) { myFeedChart.destroy(); }
+                myFeedChart = new Chart(ctxFeed, {
+                    type: 'bar',
+                    data: {
+                        labels: dateLabels,
+                        datasets: [
+                            { label: '乾糧', data: dryFoodCounts, backgroundColor: '#fb923c', borderRadius: 2 },
+                            { label: '濕糧', data: wetFoodCounts, backgroundColor: '#22c55e', borderRadius: 2 },
+                            { label: '零食', data: snackCounts, backgroundColor: '#eab308', borderRadius: 2 },
+                            { label: '飲水', data: waterCounts, backgroundColor: '#3b82f6', borderRadius: 2 }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: { x: { display: false }, y: { display: false, beginAtZero: true } },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }
+
+            // 2. 渲染放大版鏟屎柱狀圖
             const ctxPoop = document.getElementById('poopChart');
             if (ctxPoop) {
                 if (myPoopChart) { myPoopChart.destroy(); }
@@ -379,6 +438,7 @@
                 });
             }
 
+            // 3. 渲染體重折線圖
             const ctxWeight = document.getElementById('weightChart');
             if (ctxWeight) {
                 if (myWeightChart) { myWeightChart.destroy(); }
@@ -526,12 +586,12 @@
             const type = document.getElementById('food-type').value;
             const amt = document.getElementById('food-amount').value.trim();
             if (!amt) return;
-            const timeStr = getSelectedTimeStr('time-feed'); // 🌟 讀取餵食專屬時間
+            const timeStr = getSelectedTimeStr('time-feed'); 
             const dataItem = { id: String(Date.now()), time: timeStr, type: type, detail: amt };
             cloudLogs.unshift(dataItem);
             renderLogs();
             document.getElementById('food-amount').value = ''; 
-            setCurrentTime('time-feed'); // 儲存後重置為現在時間
+            setCurrentTime('time-feed'); 
             sendToGoogleSheet(dataItem);
         }
 
@@ -539,11 +599,11 @@
             e.preventDefault();
             const type = document.getElementById('poop-type').value;
             const status = document.getElementById('poop-status').value;
-            const timeStr = getSelectedTimeStr('time-poop'); // 🌟 讀取鏟屎專屬時間
+            const timeStr = getSelectedTimeStr('time-poop'); 
             const dataItem = { id: String(Date.now()), time: timeStr, type: type, detail: status };
             cloudLogs.unshift(dataItem);
             renderLogs();
-            setCurrentTime('time-poop'); // 儲存後重置為現在時間
+            setCurrentTime('time-poop'); 
             sendToGoogleSheet(dataItem);
         }
 
@@ -551,16 +611,15 @@
             e.preventDefault();
             const weightVal = document.getElementById('cat-weight').value.trim();
             if (!weightVal) return;
-            const timeStr = getSelectedTimeStr('time-weight'); // 🌟 讀取體重專屬時間
+            const timeStr = getSelectedTimeStr('time-weight'); 
             const dataItem = { id: String(Date.now()), time: timeStr, type: "體重 ⚖️", detail: weightVal + " kg" };
             cloudLogs.unshift(dataItem);
             renderLogs();
             document.getElementById('cat-weight').value = ''; 
-            setCurrentTime('time-weight'); // 儲存後重置為現在時間
+            setCurrentTime('time-weight'); 
             sendToGoogleSheet(dataItem);
         }
 
-        // 初始化所有時間輸入框
         setCurrentTime();
         fetchFromGoogleSheet(false);
     </script>
