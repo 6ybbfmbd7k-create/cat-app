@@ -3,13 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🐱 Liz 全員同步(真實時間排序版)</title>
+    <title>🐱 Liz 專屬健康管理中心</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
-        body { background: #f9fafb; padding: 15px; display: flex; justify-content: center; }
-        .app-container { width: 100%; max-width: 400px; background: white; border-radius: 16px; border: 1px solid #f3f4f6; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        .header { background: #fb923c; color: white; text-align: center; padding: 16px; font-weight: bold; font-size: 20px; }
-        .box { background: #f9fafb; margin: 12px; padding: 12px; border-radius: 12px; border: 1px solid #e5e7eb; }
+        body { background: #f9fafb; padding: 15px; display: flex; justify-content: center; overflow-x: hidden; }
+        
+        /* App 全局容器 */
+        .app-container { width: 100%; max-width: 400px; background: white; border-radius: 16px; border: 1px solid #f3f4f6; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05); position: relative; min-height: 600px; }
+        
+        /* 頂部導覽列 */
+        .navbar { background: #fb923c; color: white; display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; font-weight: bold; font-size: 18px; position: relative; z-index: 10; }
+        .menu-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; padding: 4px; }
+        .nav-title { flex-grow: 1; text-align: center; margin-right: 24px; } /* 居中對齊 */
+
+        /* 側邊欄選單 (Sidebar Menu) */
+        .sidebar { position: absolute; top: 0; left: -260px; width: 260px; height: 100%; background: #2d3748; color: white; z-index: 99; transition: left 0.3s ease; padding: 20px; box-shadow: 4px 0 10px rgba(0,0,0,0.2); }
+        .sidebar.active { left: 0; }
+        .sidebar-header { font-size: 20px; font-weight: bold; margin-bottom: 24px; border-bottom: 1px solid #4a5568; padding-bottom: 10px; color: #fb923c; }
+        .menu-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: #cbd5e0; text-decoration: none; font-size: 16px; border-radius: 8px; margin-bottom: 8px; cursor: pointer; background: none; border: none; width: 100%; text-align: left; }
+        .menu-item:hover, .menu-item.active { background: #4a5568; color: white; font-weight: bold; }
+        
+        /* 側邊欄遮罩 (Overlay) */
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 90; display: none; }
+        .overlay.active { display: block; }
+
+        /* 分頁內容容器 */
+        .page-content { display: none; padding: 12px; }
+        .page-content.active { display: block; }
+
+        /* 🪪 Liz 身份證卡片樣式 */
+        .id-card { background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%); border: 2px solid #fdba74; border-radius: 16px; padding: 16px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(251,146,60,0.1); text-align: center; }
+        .avatar-container { width: 110px; height: 110px; background: white; border-radius: 50%; margin: 0 auto 12px auto; overflow: hidden; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; position: relative; }
+        .avatar-container img { width: 100%; height: 100%; object-fit: cover; }
+        .id-name { font-size: 22px; font-weight: bold; color: #7c2d12; margin-bottom: 4px; }
+        .id-title { font-size: 13px; color: #9a3412; font-weight: 500; margin-bottom: 12px; letter-spacing: 1px; }
+        .id-details { display: flex; justify-content: space-around; background: rgba(255,255,255,0.6); padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.8); }
+        .id-stat { text-align: center; }
+        .id-stat-label { font-size: 11px; color: #c2410c; margin-bottom: 2px; }
+        .id-stat-val { font-size: 15px; font-weight: bold; color: #431407; }
+
+        /* 原有元件樣式微調 */
+        .box { background: #f9fafb; margin: 0 0 12px 0; padding: 12px; border-radius: 12px; border: 1px solid #e5e7eb; }
         .time-box { background: #eff6ff; border: 1px solid #bfdbfe; }
         .title { font-size: 14px; font-weight: bold; margin-bottom: 8px; color: #374151; }
         .flex-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
@@ -20,8 +54,8 @@
         .btn-poop { background: #78350f; }
         .btn-weight { background: #e11d48; }
         .btn-now { background: #3b82f6; color: white; padding: 10px; border: none; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; white-space: nowrap; }
-        .history-section { border-top: 1px solid #f3f4f6; padding: 12px; }
-        .log-list { max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+        .history-section { border-top: 1px solid #f3f4f6; padding: 12px 0; }
+        .log-list { max-height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
         .log-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px 12px; border-radius: 12px; border: 1px solid #f3f4f6; font-size: 13px; }
         .action-btns { display: flex; gap: 6px; }
         .btn-action { background: none; border: none; font-size: 14px; cursor: pointer; padding: 4px; }
@@ -33,70 +67,122 @@
 
     <div class="app-container">
         <div id="sync-status" class="status-badge">🔄 正在連線讀取雲端紀錄...</div>
-        <div class="header">🐱 Liz 日常紀錄 (時間排序修正版)</div>
+        
+        <div class="navbar">
+            <button class="menu-btn" onclick="toggleMenu()">☰</button>
+            <div class="nav-title" id="nav-title-text">🐱 Liz 身份證</div>
+        </div>
 
-        <div class="box time-box">
-            <div class="title" style="color: #1e40af;">📅 紀錄時間設定 (預設為現在時間)</div>
-            <div class="flex-row">
-                <input type="datetime-local" id="global-time" class="input-time">
-                <button type="button" class="btn-now" onclick="setCurrentTime()">現在時間</button>
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">🐾 Liz 選單目錄</div>
+            <button class="menu-item active" onclick="switchPage('home', '🐱 Liz 身份證', this)">🪪 Liz 身份證</button>
+            <button class="menu-item" onclick="switchPage('feed', '🍖 餵食紀錄區', this)">🍖 餵食紀錄</button>
+            <button class="menu-item" onclick="switchPage('poop', '💩 鏟屎紀錄區', this)">💩 鏟屎紀錄</button>
+            <button class="menu-item" onclick="switchPage('medical', '🩺 醫療紀錄區', this)">🩺 醫療紀錄</button>
+        </div>
+
+        <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
+
+        <div id="page-home" class="page-content active">
+            <div class="id-card">
+                <div class="avatar-container">
+                    <img src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=200&auto=format&fit=crop&q=80" alt="Liz">
+                </div>
+                <div class="id-name">Liz 🐱</div>
+                <div class="id-title">✨ 主子健康通行證 ✨</div>
+                <div class="id-details">
+                    <div class="id-stat">
+                        <div class="id-stat-label">當前體重</div>
+                        <div class="id-stat-val" id="latest-weight-display">-- kg</div>
+                    </div>
+                    <div class="id-stat">
+                        <div class="id-stat-label">最新狀態</div>
+                        <div class="id-stat-val" style="color: #166534;">精靈活潑</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="box time-box">
+                <div class="title" style="color: #1e40af;">📅 紀錄時間設定 (預設為現在時間)</div>
+                <div class="flex-row">
+                    <input type="datetime-local" id="global-time" class="input-time">
+                    <button type="button" class="btn-now" onclick="setCurrentTime()">現在時間</button>
+                </div>
+            </div>
+            <p style="text-align: center; color: #9ca3af; font-size: 13px; margin-top: 20px;">💡 點擊左上角 ☰ 即可切換到各個紀錄頁面</p>
+        </div>
+
+        <div id="page-feed" class="page-content">
+            <div class="box">
+                <div class="title">🍖 新增餵食紀錄</div>
+                <form onsubmit="addFeedLog(event)">
+                    <div class="flex-row">
+                        <select id="food-type" class="select-box" style="width: 100px;">
+                            <option>乾糧</option>
+                            <option>濕糧</option>
+                            <option>零食</option>
+                            <option>飲水</option>
+                        </select>
+                        <input type="text" id="food-amount" placeholder="輸入份量 (例如: 40g)" class="input-text" required>
+                    </div>
+                    <button type="submit" class="btn-submit btn-feed">儲存餵食 🍖</button>
+                </form>
+            </div>
+
+            <div class="history-section">
+                <div class="title" style="color: #4b5563;">📊 餵食歷史明細</div>
+                <div class="log-list" id="feed-log-area">
+                    <p style="text-align:center; color:#9ca3af; padding:15px; font-size:13px;">正在載入餵食數據...</p>
+                </div>
             </div>
         </div>
 
-        <div class="box">
-            <div class="title">🍖 新增餵食紀錄</div>
-            <form onsubmit="addFeedLog(event)">
-                <div class="flex-row">
-                    <select id="food-type" class="select-box" style="width: 100px;">
-                        <option>乾糧</option>
-                        <option>濕糧</option>
-                        <option>零食</option>
-                        <option>飲水</option>
-                    </select>
-                    <input type="text" id="food-amount" placeholder="輸入份量 (例如: 40g)" class="input-text" required>
-                </div>
-                <button type="submit" class="btn-submit btn-feed">儲存餵食 🍖</button>
-            </form>
-        </div>
-
-        <div class="box">
-            <div class="title">💩 新增鏟屎紀錄</div>
-            <form onsubmit="addPoopLog(event)">
-                <div class="flex-row">
-                    <select id="poop-type" class="select-box">
-                        <option>便便 💩</option>
-                        <option>尿尿 💧</option>
-                    </select>
-                    <select id="poop-status" class="select-box">
-                        <option>正常 🪵</option>
-                        <option>肚痾 🌊</option>
-                        <option>偏硬 🪨</option>
-                    </select>
-                </div>
-                <button type="submit" class="btn-submit btn-poop">儲存鏟屎 💩</button>
-            </form>
-        </div>
-
-        <div class="box">
-            <div class="title">⚖️ 新增體重紀錄</div>
-            <form onsubmit="addWeightLog(event)">
-                <div class="flex-row">
-                    <input type="number" step="0.01" id="cat-weight" placeholder="輸入體重 (例如: 4.55)" class="input-text" required>
-                    <span style="font-weight: bold; color: #4b5563; padding-right: 4px;">kg</span>
-                </div>
-                <button type="submit" class="btn-submit btn-weight">儲存體重 ⚖️</button>
-            </form>
-        </div>
-
-        <div class="history-section">
-            <div class="title" style="color: #4b5563; display: flex; justify-content: space-between;">
-                <span>📊 全員同步歷史紀錄</span>
-                <span style="font-size: 11px; color: #0284c7; cursor: pointer;" onclick="fetchFromGoogleSheet()">🔄 手動整理</span>
+        <div id="page-poop" class="page-content">
+            <div class="box">
+                <div class="title">💩 新增鏟屎紀錄</div>
+                <form onsubmit="addPoopLog(event)">
+                    <div class="flex-row">
+                        <select id="poop-type" class="select-box">
+                            <option>便便 💩</option>
+                            <option>尿尿 💧</option>
+                        </select>
+                        <select id="poop-status" class="select-box">
+                            <option>正常 🪵</option>
+                            <option>肚痾 🌊</option>
+                            <option>偏硬 🪨</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-submit btn-poop">儲存鏟屎 💩</button>
+                </form>
             </div>
-            <div class="log-list" id="log-list-area">
-                <p style="text-align:center; color:#9ca3af; padding:15px; font-size:13px;">正在載入雲端資料...</p>
+
+            <div class="box">
+                <div class="title">⚖️ 新增體重紀錄</div>
+                <form onsubmit="addWeightLog(event)">
+                    <div class="flex-row">
+                        <input type="number" step="0.01" id="cat-weight" placeholder="輸入體重 (例如: 4.55)" class="input-text" required>
+                        <span style="font-weight: bold; color: #4b5563; padding-right: 4px;">kg</span>
+                    </div>
+                    <button type="submit" class="btn-submit btn-weight">儲存體重 ⚖️</button>
+                </form>
+            </div>
+
+            <div class="history-section">
+                <div class="title" style="color: #4b5563;">📊 鏟屎及體重歷史明細</div>
+                <div class="log-list" id="poop-log-area">
+                    <p style="text-align:center; color:#9ca3af; padding:15px; font-size:13px;">正在載入鏟屎數據...</p>
+                </div>
             </div>
         </div>
+
+        <div id="page-medical" class="page-content">
+            <div class="box" style="text-align: center; padding: 40px 20px;">
+                <span style="font-size: 48px;">🩺</span>
+                <h3 style="margin-top: 15px; color: #4b5563;">醫療紀錄功能</h3>
+                <p style="color: #9ca3af; font-size: 14px; margin-top: 8px;">（此功能已成功預留，暫時不需製作內容）</p>
+            </div>
+        </div>
+
     </div>
 
     <script>
@@ -105,6 +191,33 @@
 
         let cloudLogs = [];
 
+        // 控制側邊欄開關
+        function toggleMenu() {
+            document.getElementById('sidebar').classList.toggle('active');
+            document.getElementById('overlay').classList.toggle('active');
+        }
+
+        // 切換分頁邏輯
+        function switchPage(pageId, titleText, element) {
+            // 隱藏所有分頁
+            const pages = document.querySelectorAll('.page-content');
+            pages.forEach(p => p.classList.remove('active'));
+            
+            // 顯示點選的分頁
+            document.getElementById('page-' + pageId).classList.add('active');
+            
+            // 修改上方導覽列標題
+            document.getElementById('nav-title-text').innerText = titleText;
+            
+            // 更新選單按鈕的高亮狀態
+            const items = document.querySelectorAll('.menu-item');
+            items.forEach(i => i.classList.remove('active'));
+            element.classList.add('active');
+            
+            // 關閉側邊欄
+            toggleMenu();
+        }
+
         function setCurrentTime() {
             const now = new Date();
             const offset = now.getTimezoneOffset() * 60000;
@@ -112,7 +225,6 @@
             document.getElementById('global-time').value = localISOTime;
         }
 
-        // 格式化為： "MM/DD HH:mm" (補零以利正確排序)
         function getSelectedTimeStr() {
             const userTimeVal = document.getElementById('global-time').value;
             let t = userTimeVal ? new Date(userTimeVal) : new Date();
@@ -134,8 +246,7 @@
             .then(function(data) {
                 cloudLogs = data;
                 
-                // 🌟 【排序終極優化】直接將顯示時間清洗乾淨，然後進行字串倒序比較
-                // 這樣無論何時補入紀錄，都能真正根據「紀錄顯示的日期與時間」最新排最頂！
+                // 時間排序
                 cloudLogs.sort(function(a, b) {
                     let timeA = cleanDisplayTime(a.time);
                     let timeB = cleanDisplayTime(b.time);
@@ -143,6 +254,8 @@
                 });
 
                 renderLogs();
+                updateLatestWeight(); // 自動分析並更新首頁身份證體重
+                
                 document.getElementById('sync-status').className = "status-badge status-online";
                 document.getElementById('sync-status').innerText = "🟢 雲端同步成功 (已連線)";
             })
@@ -150,6 +263,16 @@
                 console.error("讀取失敗:", err);
                 document.getElementById('sync-status').innerText = "❌ 雲端讀取失敗，請重新整理網頁";
             });
+        }
+
+        // 🌟 自動抓取最後一條體重，顯示喺首頁身份證
+        function updateLatestWeight() {
+            const weightLog = cloudLogs.find(log => log.type === "體重 ⚖️");
+            if (weightLog) {
+                document.getElementById('latest-weight-display').innerText = weightLog.detail;
+            } else {
+                document.getElementById('latest-weight-display').innerText = "-- kg";
+            }
         }
 
         function cleanDisplayTime(timeInput) {
@@ -170,30 +293,47 @@
             return timeStr;
         }
 
+        // 🌟 重新設計：將歷史紀錄分流顯示到各自的分頁明細中
         function renderLogs() {
-            const area = document.getElementById('log-list-area');
-            if (!cloudLogs || cloudLogs.length === 0) {
-                area.innerHTML = '<p style="text-align:center; color:#9ca3af; padding:15px; font-size:13px;">雲端目前未有任何紀錄</p>';
-                return;
-            }
+            const feedArea = document.getElementById('feed-log-area');
+            const poopArea = document.getElementById('poop-log-area');
             
-            area.innerHTML = cloudLogs.map(function(e) {
-                let labelColor = "#fb923c";
-                if (e.type === "便便 💩" || e.type === "尿尿 💧") labelColor = "#78350f";
-                if (e.type === "體重 ⚖️") labelColor = "#e11d48";
+            // 過濾分流
+            const feedLogs = cloudLogs.filter(log => log.type === "乾糧" || log.type === "濕糧" || log.type === "零食" || log.type === "飲水");
+            const poopLogs = cloudLogs.filter(log => log.type === "便便 💩" || log.type === "尿尿 💧" || log.type === "體重 ⚖️");
 
-                let formattedTime = cleanDisplayTime(e.time);
+            // 渲染餵食分頁明細
+            if (feedLogs.length === 0) {
+                feedArea.innerHTML = '<p style="text-align:center; color:#9ca3af; padding:15px; font-size:13px;">未有任何餵食紀錄</p>';
+            } else {
+                feedArea.innerHTML = feedLogs.map(logHtmlHtml).join("");
+            }
 
-                return '<div class="log-item">' +
-                    '<div><b style="color:' + labelColor + ';">' + e.type + '</b><br><small style="color:#9ca3af;">' + formattedTime + '</small></div>' +
-                    '<div style="display:flex; align-items:center; gap:10px;">' +
-                    '<span style="font-weight:bold; color:#374151;">' + e.detail + '</span>' +
-                    '<div class="action-btns">' +
-                    '<button class="btn-action" onclick="editLog(\'' + e.id + '\', \'' + e.detail + '\')">✏️</button>' +
-                    '<button class="btn-action" onclick="deleteLog(\'' + e.id + '\')">🗑️</button>' +
-                    '</div>' +
-                    '</div></div>';
-            }).join("");
+            // 渲染鏟屎分頁明細
+            if (poopLogs.length === 0) {
+                poopArea.innerHTML = '<p style="text-align:center; color:#9ca3af; padding:15px; font-size:13px;">未有任何鏟屎/體重紀錄</p>';
+            } else {
+                poopArea.innerHTML = poopLogs.map(logHtmlHtml).join("");
+            }
+        }
+
+        // 單條紀錄的 HTML 模板
+        function logHtmlHtml(e) {
+            let labelColor = "#fb923c";
+            if (e.type === "便便 💩" || e.type === "尿尿 💧") labelColor = "#78350f";
+            if (e.type === "體重 ⚖️") labelColor = "#e11d48";
+
+            let formattedTime = cleanDisplayTime(e.time);
+
+            return '<div class="log-item">' +
+                '<div><b style="color:' + labelColor + ';">' + e.type + '</b><br><small style="color:#9ca3af;">' + formattedTime + '</small></div>' +
+                '<div style="display:flex; align-items:center; gap:10px;">' +
+                '<span style="font-weight:bold; color:#374151;">' + e.detail + '</span>' +
+                '<div class="action-btns">' +
+                '<button class="btn-action" onclick="editLog(\'' + e.id + '\', \'' + e.detail + '\')">✏️</button>' +
+                '<button class="btn-action" onclick="deleteLog(\'' + e.id + '\')">🗑️</button>' +
+                '</div>' +
+                '</div></div>';
         }
 
         function sendToGoogleSheet(newData) {
@@ -221,6 +361,7 @@
                 .then(function() {
                     cloudLogs = cloudLogs.filter(function(log) { return String(log.id) !== String(id); });
                     renderLogs();
+                    updateLatestWeight();
                     setTimeout(fetchFromGoogleSheet, 1500);
                 });
             }
@@ -246,6 +387,7 @@
                     return log;
                 });
                 renderLogs();
+                updateLatestWeight();
                 setTimeout(fetchFromGoogleSheet, 1500);
             });
         }
