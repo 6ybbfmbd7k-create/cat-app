@@ -40,7 +40,6 @@
         .box { background: #f9fafb; margin: 0 0 12px 0; padding: 12px; border-radius: 12px; border: 1px solid #e5e7eb; }
         .time-box { background: #eff6ff; border: 1px solid #bfdbfe; }
         
-        /* 📊 【超微型外殼】極致壓縮，高度得返 50px */
         .chart-box { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 4px 8px; margin-bottom: 10px; }
         
         .title { font-size: 14px; font-weight: bold; margin-bottom: 8px; color: #374151; }
@@ -76,6 +75,7 @@
             <button class="menu-item active" onclick="switchPage('home', '🐱 Liz 身份證', this)">🪪 Liz 身份證</button>
             <button class="menu-item" onclick="switchPage('feed', '🍖 餵食紀錄區', this)">🍖 餵食紀錄</button>
             <button class="menu-item" onclick="switchPage('poop', '💩 鏟屎紀錄區', this)">💩 鏟屎紀錄</button>
+            <button class="menu-item" onclick="switchPage('weight', '⚖️ 體重紀錄區', this)">⚖️ 體重紀錄</button>
             <button class="menu-item" onclick="switchPage('medical', '🩺 醫療紀錄區', this)">🩺 醫療紀錄</button>
         </div>
 
@@ -136,10 +136,9 @@
         </div>
 
         <div id="page-poop" class="page-content">
-            
             <div class="chart-box" style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
                 <div style="font-size: 11px; color: #78350f; white-space: nowrap; font-weight: bold;">
-                    7日趨勢<br><span style="color:#9a3412;">💩</span> <span style="color:#3b82f6;">💧</span>
+                    7日屎尿<br><span style="color:#9a3412;">💩</span> <span style="color:#3b82f6;">💧</span>
                 </div>
                 <div style="flex-grow: 1; height: 50px; position: relative;">
                     <canvas id="poopChart"></canvas>
@@ -164,6 +163,24 @@
                 </form>
             </div>
 
+            <div class="history-section">
+                <div class="title" style="color: #4b5563;">📊 鏟屎歷史明細</div>
+                <div class="log-list" id="poop-log-area">
+                    <p style="text-align:center; color:#9ca3af; padding:15px; font-size:13px;">正在載入鏟屎數據...</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="page-weight" class="page-content">
+            <div class="chart-box" style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                <div style="font-size: 11px; color: #e11d48; white-space: nowrap; font-weight: bold;">
+                    7日體重<br><span style="color:#e11d48;">📈 kg</span>
+                </div>
+                <div style="flex-grow: 1; height: 50px; position: relative;">
+                    <canvas id="weightChart"></canvas>
+                </div>
+            </div>
+
             <div class="box">
                 <div class="title">⚖️ 新增體重紀錄</div>
                 <form onsubmit="addWeightLog(event)">
@@ -176,9 +193,9 @@
             </div>
 
             <div class="history-section">
-                <div class="title" style="color: #4b5563;">📊 鏟屎及體重歷史明細</div>
-                <div class="log-list" id="poop-log-area">
-                    <p style="text-align:center; color:#9ca3af; padding:15px; font-size:13px;">正在載入鏟屎數據...</p>
+                <div class="title" style="color: #4b5563;">📊 體重歷史明細</div>
+                <div class="log-list" id="weight-log-area">
+                    <p style="text-align:center; color:#9ca3af; padding:15px; font-size:13px;">正在載入體重數據...</p>
                 </div>
             </div>
         </div>
@@ -198,6 +215,7 @@
 
         let cloudLogs = [];
         let myPoopChart = null;
+        let myWeightChart = null; // 🌟 體重獨立圖表物件
 
         function toggleMenu() {
             document.getElementById('sidebar').classList.toggle('active');
@@ -254,7 +272,7 @@
 
                 renderLogs();
                 updateLatestWeight();
-                buildPoopChart();
+                buildCharts(); // 🌟 一次過繪製雙圖表
                 
                 document.getElementById('sync-status').className = "status-badge status-online";
                 document.getElementById('sync-status').innerText = "🟢 雲端同步成功 (已連線)";
@@ -274,10 +292,8 @@
             }
         }
 
-        function buildPoopChart() {
-            const ctx = document.getElementById('poopChart');
-            if (!ctx) return;
-
+        // 🌟 【圖表分流繪製邏輯】
+        function buildCharts() {
             let dateLabels = [];
             for (let i = 6; i >= 0; i--) {
                 let d = new Date();
@@ -289,6 +305,7 @@
 
             let poopCounts = new Array(7).fill(0);
             let peeCounts = new Array(7).fill(0);
+            let weightValues = new Array(7).fill(null);
 
             cloudLogs.forEach(function(log) {
                 let logTimeClean = cleanDisplayTime(log.time);
@@ -298,43 +315,71 @@
                 if (idx !== -1) {
                     if (log.type === "便便 💩") { poopCounts[idx]++; }
                     if (log.type === "尿尿 💧") { peeCounts[idx]++; }
-                }
-            });
-
-            if (myPoopChart) { myPoopChart.destroy(); }
-
-            myPoopChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: dateLabels,
-                    datasets: [
-                        {
-                            label: '便便',
-                            data: poopCounts,
-                            backgroundColor: '#9a3412',
-                            borderRadius: 2
-                        },
-                        {
-                            label: '尿尿',
-                            data: peeCounts,
-                            backgroundColor: '#3b82f6',
-                            borderRadius: 2
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        // 🌟 完全隱藏外圍網格與軸線，實現超微型走勢效果
-                        x: { display: false },
-                        y: { display: false, beginAtZero: true }
-                    },
-                    plugins: {
-                        legend: { display: false } // 隱藏圖例，用左側文字代替
+                    if (log.type === "體重 ⚖️") {
+                        let num = parseFloat(log.detail);
+                        if (!isNaN(num)) { weightValues[idx] = num; }
                     }
                 }
             });
+
+            // 體重折線平滑補空缺
+            let lastKnownWeight = null;
+            for (let i = 0; i < 7; i++) {
+                if (weightValues[i] !== null) { lastKnownWeight = weightValues[i]; }
+                else if (lastKnownWeight !== null) { weightValues[i] = lastKnownWeight; }
+            }
+            for (let i = 6; i >= 0; i--) {
+                if (weightValues[i] !== null) { lastKnownWeight = weightValues[i]; }
+                if (weightValues[i] === null && lastKnownWeight !== null) { weightValues[i] = lastKnownWeight; }
+            }
+
+            // 1. 渲染鏟屎柱狀圖
+            const ctxPoop = document.getElementById('poopChart');
+            if (ctxPoop) {
+                if (myPoopChart) { myPoopChart.destroy(); }
+                myPoopChart = new Chart(ctxPoop, {
+                    type: 'bar',
+                    data: {
+                        labels: dateLabels,
+                        datasets: [
+                            { label: '便便', data: poopCounts, backgroundColor: '#9a3412', borderRadius: 2 },
+                            { label: '尿尿', data: peeCounts, backgroundColor: '#3b82f6', borderRadius: 2 }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: { x: { display: false }, y: { display: false, beginAtZero: true } },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }
+
+            // 2. 渲染體重折線圖
+            const ctxWeight = document.getElementById('weightChart');
+            if (ctxWeight) {
+                if (myWeightChart) { myWeightChart.destroy(); }
+                myWeightChart = new Chart(ctxWeight, {
+                    type: 'line',
+                    data: {
+                        labels: dateLabels,
+                        datasets: [{
+                            label: '體重',
+                            data: weightValues,
+                            borderColor: '#e11d48',
+                            borderWidth: 2,
+                            pointRadius: 2,
+                            fill: false
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: { x: { display: false }, y: { display: false } },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }
         }
 
         function cleanDisplayTime(timeInput) {
@@ -355,24 +400,27 @@
             return timeStr;
         }
 
+        // 🌟 【明細列表完美分流】
         function renderLogs() {
             const feedArea = document.getElementById('feed-log-area');
             const poopArea = document.getElementById('poop-log-area');
+            const weightArea = document.getElementById('weight-log-area');
             
             const feedLogs = cloudLogs.filter(log => log.type === "乾糧" || log.type === "濕糧" || log.type === "零食" || log.type === "飲水");
-            const poopLogs = cloudLogs.filter(log => log.type === "便便 💩" || log.type === "尿尿 💧" || log.type === "體重 ⚖️");
+            const poopLogs = cloudLogs.filter(log => log.type === "便便 💩" || log.type === "尿尿 💧");
+            const weightLogs = cloudLogs.filter(log => log.type === "體重 ⚖️");
 
             if (feedLogs.length === 0) {
                 feedArea.innerHTML = '<p style="text-align:center; color:#9ca3af; padding:15px; font-size:13px;">未有任何餵食紀錄</p>';
-            } else {
-                feedArea.innerHTML = feedLogs.map(logHtmlHtml).join("");
-            }
+            } else { feedArea.innerHTML = feedLogs.map(logHtmlHtml).join(""); }
 
             if (poopLogs.length === 0) {
-                poopArea.innerHTML = '<p style="text-align:center; color:#9ca3af; padding:15px; font-size:13px;">未有任何鏟屎/體重紀錄</p>';
-            } else {
-                poopArea.innerHTML = poopLogs.map(logHtmlHtml).join("");
-            }
+                poopArea.innerHTML = '<p style="text-align:center; color:#9ca3af; padding:15px; font-size:13px;">未有任何鏟屎紀錄</p>';
+            } else { poopArea.innerHTML = poopLogs.map(logHtmlHtml).join(""); }
+
+            if (weightLogs.length === 0) {
+                weightArea.innerHTML = '<p style="text-align:center; color:#9ca3af; padding:15px; font-size:13px;">未有任何體重紀錄</p>';
+            } else { weightArea.innerHTML = weightLogs.map(logHtmlHtml).join(""); }
         }
 
         function logHtmlHtml(e) {
@@ -419,7 +467,7 @@
                     cloudLogs = cloudLogs.filter(function(log) { return String(log.id) !== String(id); });
                     renderLogs();
                     updateLatestWeight();
-                    buildPoopChart();
+                    buildCharts();
                     setTimeout(function() { fetchFromGoogleSheet(true); }, 1500);
                 });
             }
@@ -446,7 +494,7 @@
                 });
                 renderLogs();
                 updateLatestWeight();
-                buildPoopChart();
+                buildCharts();
                 setTimeout(function() { fetchFromGoogleSheet(true); }, 1500);
             });
         }
