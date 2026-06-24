@@ -4,36 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>🐱 Liz 專屬健康管理中心</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
         body { background: #f9fafb; padding: 15px; display: flex; justify-content: center; overflow-x: hidden; }
         
-        /* App 全局容器 */
         .app-container { width: 100%; max-width: 400px; background: white; border-radius: 16px; border: 1px solid #f3f4f6; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05); position: relative; min-height: 600px; }
         
-        /* 頂部導覽列 */
         .navbar { background: #fb923c; color: white; display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; font-weight: bold; font-size: 18px; position: relative; z-index: 10; }
         .menu-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; padding: 4px; }
-        .nav-title { flex-grow: 1; text-align: center; margin-right: 24px; } /* 居中對齊 */
+        .nav-title { flex-grow: 1; text-align: center; margin-right: 24px; }
 
-        /* 側邊欄選單 (Sidebar Menu) */
         .sidebar { position: absolute; top: 0; left: -260px; width: 260px; height: 100%; background: #2d3748; color: white; z-index: 99; transition: left 0.3s ease; padding: 20px; box-shadow: 4px 0 10px rgba(0,0,0,0.2); }
         .sidebar.active { left: 0; }
         .sidebar-header { font-size: 20px; font-weight: bold; margin-bottom: 24px; border-bottom: 1px solid #4a5568; padding-bottom: 10px; color: #fb923c; }
         .menu-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: #cbd5e0; text-decoration: none; font-size: 16px; border-radius: 8px; margin-bottom: 8px; cursor: pointer; background: none; border: none; width: 100%; text-align: left; }
         .menu-item:hover, .menu-item.active { background: #4a5568; color: white; font-weight: bold; }
         
-        /* 側邊欄遮罩 (Overlay) */
         .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 90; display: none; }
         .overlay.active { display: block; }
 
-        /* 分頁內容容器 */
         .page-content { display: none; padding: 12px; }
         .page-content.active { display: block; }
 
-        /* 🪪 Liz 身份證卡片樣式 */
         .id-card { background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%); border: 2px solid #fdba74; border-radius: 16px; padding: 16px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(251,146,60,0.1); text-align: center; }
-        .avatar-container { width: 110px; height: 110px; background: white; border-radius: 50%; margin: 0 auto 12px auto; overflow: hidden; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; position: relative; }
+        .avatar-container { width: 110px; height: 110px; background: white; border-radius: 50%; margin: 0 auto 12px auto; overflow: hidden; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; }
         .avatar-container img { width: 100%; height: 100%; object-fit: cover; }
         .id-name { font-size: 22px; font-weight: bold; color: #7c2d12; margin-bottom: 4px; }
         .id-title { font-size: 13px; color: #9a3412; font-weight: 500; margin-bottom: 12px; letter-spacing: 1px; }
@@ -42,9 +37,12 @@
         .id-stat-label { font-size: 11px; color: #c2410c; margin-bottom: 2px; }
         .id-stat-val { font-size: 15px; font-weight: bold; color: #431407; }
 
-        /* 原有元件樣式微調 */
         .box { background: #f9fafb; margin: 0 0 12px 0; padding: 12px; border-radius: 12px; border: 1px solid #e5e7eb; }
         .time-box { background: #eff6ff; border: 1px solid #bfdbfe; }
+        
+        /* 📊 圖表外殼樣式 */
+        .chart-box { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; margin-bottom: 12px; min-height: 200px; }
+        
         .title { font-size: 14px; font-weight: bold; margin-bottom: 8px; color: #374151; }
         .flex-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
         .input-text, .select-box, .input-time { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; background: white; }
@@ -55,7 +53,7 @@
         .btn-weight { background: #e11d48; }
         .btn-now { background: #3b82f6; color: white; padding: 10px; border: none; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; white-space: nowrap; }
         .history-section { border-top: 1px solid #f3f4f6; padding: 12px 0; }
-        .log-list { max-height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+        .log-list { max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
         .log-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px 12px; border-radius: 12px; border: 1px solid #f3f4f6; font-size: 13px; }
         .action-btns { display: flex; gap: 6px; }
         .btn-action { background: none; border: none; font-size: 14px; cursor: pointer; padding: 4px; }
@@ -138,6 +136,14 @@
         </div>
 
         <div id="page-poop" class="page-content">
+            
+            <div class="chart-box">
+                <div class="title" style="color: #78350f; display: flex; justify-content: space-between; align-items: center;">
+                    <span>📊 每日屎尿次數統計 (最近7天)</span>
+                </div>
+                <canvas id="poopChart" style="width:100%; height:180px;"></style>
+            </div>
+
             <div class="box">
                 <div class="title">💩 新增鏟屎紀錄</div>
                 <form onsubmit="addPoopLog(event)">
@@ -186,35 +192,24 @@
     </div>
 
     <script>
-        // 【⚠️ 重要設定】請把下面引號內換成你的 Google GAS 網址：
         const GAS_URL = "https://script.google.com/macros/s/AKfycbxw8GYN5UFdvloq3gbD9eaT7O8mDPibIufrKPSHuOYNqWPUGwfQkiryCZE_0v1zlE9f/exec";
 
         let cloudLogs = [];
+        let myPoopChart = null; // 用來儲存圖表物件
 
-        // 控制側邊欄開關
         function toggleMenu() {
             document.getElementById('sidebar').classList.toggle('active');
             document.getElementById('overlay').classList.toggle('active');
         }
 
-        // 切換分頁邏輯
         function switchPage(pageId, titleText, element) {
-            // 隱藏所有分頁
             const pages = document.querySelectorAll('.page-content');
             pages.forEach(p => p.classList.remove('active'));
-            
-            // 顯示點選的分頁
             document.getElementById('page-' + pageId).classList.add('active');
-            
-            // 修改上方導覽列標題
             document.getElementById('nav-title-text').innerText = titleText;
-            
-            // 更新選單按鈕的高亮狀態
             const items = document.querySelectorAll('.menu-item');
             items.forEach(i => i.classList.remove('active'));
             element.classList.add('active');
-            
-            // 關閉側邊欄
             toggleMenu();
         }
 
@@ -246,7 +241,6 @@
             .then(function(data) {
                 cloudLogs = data;
                 
-                // 時間排序
                 cloudLogs.sort(function(a, b) {
                     let timeA = cleanDisplayTime(a.time);
                     let timeB = cleanDisplayTime(b.time);
@@ -254,7 +248,8 @@
                 });
 
                 renderLogs();
-                updateLatestWeight(); // 自動分析並更新首頁身份證體重
+                updateLatestWeight();
+                buildPoopChart(); // 🌟 當雲端有新數據時，自動計算並更新統計圖表
                 
                 document.getElementById('sync-status').className = "status-badge status-online";
                 document.getElementById('sync-status').innerText = "🟢 雲端同步成功 (已連線)";
@@ -265,7 +260,6 @@
             });
         }
 
-        // 🌟 自動抓取最後一條體重，顯示喺首頁身份證
         function updateLatestWeight() {
             const weightLog = cloudLogs.find(log => log.type === "體重 ⚖️");
             if (weightLog) {
@@ -273,6 +267,76 @@
             } else {
                 document.getElementById('latest-weight-display').innerText = "-- kg";
             }
+        }
+
+        // 🌟 【新增：核心數據分析】計算最近7日每日的屎、尿次數並生成圖表
+        function buildPoopChart() {
+            const ctx = document.getElementById('poopChart');
+            if (!ctx) return;
+
+            // 1. 產生最近7天的日期標籤清單 (格式: MM/DD)
+            let dateLabels = [];
+            for (let i = 6; i >= 0; i--) {
+                let d = new Date();
+                d.setDate(d.getDate() - i);
+                let mStr = String(d.getMonth() + 1).padStart(2, '0');
+                let dStr = String(d.getDate()).padStart(2, '0');
+                dateLabels.push(mStr + '/' + dStr);
+            }
+
+            // 2. 初始化計數器
+            let poopCounts = new Array(7).fill(0);
+            let peeCounts = new Array(7).fill(0);
+
+            // 3. 掃描全部數據，只要日期穩合就加1
+            cloudLogs.forEach(function(log) {
+                let logTimeClean = cleanDisplayTime(log.time); // 格式 "MM/DD HH:mm"
+                let logDate = logTimeClean.split(' ')[0];    // 拿取 "MM/DD"
+
+                let idx = dateLabels.indexOf(logDate);
+                if (idx !== -1) {
+                    if (log.type === "便便 💩") { poopCounts[idx]++; }
+                    if (log.type === "尿尿 💧") { peeCounts[idx]++; }
+                }
+            });
+
+            // 4. 銷毀舊圖表防止重疊
+            if (myPoopChart) { myPoopChart.destroy(); }
+
+            // 5. 渲染全新圖表
+            myPoopChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: dateLabels,
+                    datasets: [
+                        {
+                            label: '便便 💩',
+                            data: poopCounts,
+                            backgroundColor: '#9a3412', // 咖啡色柱體
+                            borderRadius: 4
+                        },
+                        {
+                            label: '尿尿 💧',
+                            data: peeCounts,
+                            backgroundColor: '#3b82f6', // 藍色柱體
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1, precision: 0 } // 只顯示整數 (1次, 2次)
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } }
+                    }
+                }
+            });
         }
 
         function cleanDisplayTime(timeInput) {
@@ -293,23 +357,19 @@
             return timeStr;
         }
 
-        // 🌟 重新設計：將歷史紀錄分流顯示到各自的分頁明細中
         function renderLogs() {
             const feedArea = document.getElementById('feed-log-area');
             const poopArea = document.getElementById('poop-log-area');
             
-            // 過濾分流
             const feedLogs = cloudLogs.filter(log => log.type === "乾糧" || log.type === "濕糧" || log.type === "零食" || log.type === "飲水");
             const poopLogs = cloudLogs.filter(log => log.type === "便便 💩" || log.type === "尿尿 💧" || log.type === "體重 ⚖️");
 
-            // 渲染餵食分頁明細
             if (feedLogs.length === 0) {
                 feedArea.innerHTML = '<p style="text-align:center; color:#9ca3af; padding:15px; font-size:13px;">未有任何餵食紀錄</p>';
             } else {
                 feedArea.innerHTML = feedLogs.map(logHtmlHtml).join("");
             }
 
-            // 渲染鏟屎分頁明細
             if (poopLogs.length === 0) {
                 poopArea.innerHTML = '<p style="text-align:center; color:#9ca3af; padding:15px; font-size:13px;">未有任何鏟屎/體重紀錄</p>';
             } else {
@@ -317,7 +377,6 @@
             }
         }
 
-        // 單條紀錄的 HTML 模板
         function logHtmlHtml(e) {
             let labelColor = "#fb923c";
             if (e.type === "便便 💩" || e.type === "尿尿 💧") labelColor = "#78350f";
@@ -362,6 +421,7 @@
                     cloudLogs = cloudLogs.filter(function(log) { return String(log.id) !== String(id); });
                     renderLogs();
                     updateLatestWeight();
+                    buildPoopChart(); // 重新畫圖
                     setTimeout(fetchFromGoogleSheet, 1500);
                 });
             }
@@ -388,6 +448,7 @@
                 });
                 renderLogs();
                 updateLatestWeight();
+                buildPoopChart(); // 重新畫圖
                 setTimeout(fetchFromGoogleSheet, 1500);
             });
         }
