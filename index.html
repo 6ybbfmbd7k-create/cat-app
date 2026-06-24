@@ -40,8 +40,8 @@
         .box { background: #f9fafb; margin: 0 0 12px 0; padding: 12px; border-radius: 12px; border: 1px solid #e5e7eb; }
         .time-box { background: #eff6ff; border: 1px solid #bfdbfe; }
         
-        /* 📊 【極致縮細】進一步壓低 padding 減少佔用面積 */
-        .chart-box { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 6px 10px; margin-bottom: 10px; }
+        /* 📊 【超微型外殼】極致壓縮，高度得返 50px */
+        .chart-box { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 4px 8px; margin-bottom: 10px; }
         
         .title { font-size: 14px; font-weight: bold; margin-bottom: 8px; color: #374151; }
         .flex-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
@@ -137,9 +137,13 @@
 
         <div id="page-poop" class="page-content">
             
-            <div class="chart-box">
-                <div class="title" style="font-size: 11px; color: #78350f; margin-bottom: 2px;">📊 每日屎尿次數統計 (最近7天)</div>
-                <canvas id="poopChart" style="width:100%; height:95px;"></canvas>
+            <div class="chart-box" style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                <div style="font-size: 11px; color: #78350f; white-space: nowrap; font-weight: bold;">
+                    7日趨勢<br><span style="color:#9a3412;">💩</span> <span style="color:#3b82f6;">💧</span>
+                </div>
+                <div style="flex-grow: 1; height: 50px; position: relative;">
+                    <canvas id="poopChart"></canvas>
+                </div>
             </div>
 
             <div class="box">
@@ -305,16 +309,16 @@
                     labels: dateLabels,
                     datasets: [
                         {
-                            label: '💩',
+                            label: '便便',
                             data: poopCounts,
                             backgroundColor: '#9a3412',
-                            borderRadius: 3
+                            borderRadius: 2
                         },
                         {
-                            label: '💧',
+                            label: '尿尿',
                             data: peeCounts,
                             backgroundColor: '#3b82f6',
-                            borderRadius: 3
+                            borderRadius: 2
                         }
                     ]
                 },
@@ -322,15 +326,12 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
-                        x: { ticks: { font: { size: 9 } } },
-                        y: {
-                            beginAtZero: true,
-                            ticks: { stepSize: 1, precision: 0, font: { size: 9 } }
-                        }
+                        // 🌟 完全隱藏外圍網格與軸線，實現超微型走勢效果
+                        x: { display: false },
+                        y: { display: false, beginAtZero: true }
                     },
                     plugins: {
-                        // 🌟 圖例極簡化做單個表情，節省頂部垂直空間
-                        legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } }
+                        legend: { display: false } // 隱藏圖例，用左側文字代替
                     }
                 }
             });
