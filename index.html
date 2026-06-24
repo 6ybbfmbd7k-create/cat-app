@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🐱 Liz 全員同步(管理編輯版)</title>
+    <title>🐱 Liz 全員同步(時間優化版)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
         body { background: #f9fafb; padding: 15px; display: flex; justify-content: center; }
@@ -33,7 +33,7 @@
 
     <div class="app-container">
         <div id="sync-status" class="status-badge">🔄 正在連線讀取雲端紀錄...</div>
-        <div class="header">🐱 Liz 日常紀錄 (管理編輯版)</div>
+        <div class="header">🐱 Liz 日常紀錄 (時間優化版)</div>
 
         <div class="box time-box">
             <div class="title" style="color: #1e40af;">📅 紀錄時間設定 (預設為現在時間)</div>
@@ -132,6 +132,13 @@
             .then(function(res) { return res.json(); })
             .then(function(data) {
                 cloudLogs = data;
+                
+                // 🌟 【新增優化核心】強迫歷史紀錄根據一開初生成的唯一「id」(時間戳記) 由新到舊排序
+                // 這樣不論 Google Sheet 傳回來的順序如何，或者補入哪一天的資料，手機畫面都會最新在最頂！
+                cloudLogs.sort(function(a, b) {
+                    return Number(b.id) - Number(a.id);
+                });
+
                 renderLogs();
                 document.getElementById('sync-status').className = "status-badge status-online";
                 document.getElementById('sync-status').innerText = "🟢 雲端同步成功 (已連線)";
@@ -174,7 +181,6 @@
 
                 let formattedTime = cleanDisplayTime(e.time);
 
-                // 為每條紀錄加上修改(✏️)和刪除(🗑️)按鈕，並傳入其專屬的 id
                 return '<div class="log-item">' +
                     '<div><b style="color:' + labelColor + ';">' + e.type + '</b><br><small style="color:#9ca3af;">' + formattedTime + '</small></div>' +
                     '<div style="display:flex; align-items:center; gap:10px;">' +
@@ -187,7 +193,6 @@
             }).join("");
         }
 
-        // 發送普通新增資料
         function sendToGoogleSheet(newData) {
             fetch(GAS_URL, {
                 method: 'POST',
@@ -200,12 +205,10 @@
             });
         }
 
-        // 🌟 新增：點擊 🗑️ 刪除按鈕觸發
         function deleteLog(id) {
             if (!id || id === "undefined") { alert("此紀錄無法刪除"); return; }
             if (confirm("確定要【徹底刪除】呢條紀錄嗎？\n(Google Sheet 亦會同步刪除)")) {
                 document.getElementById('sync-status').innerText = "⏳ 正在雲端刪除...";
-                
                 fetch(GAS_URL, {
                     method: 'POST',
                     mode: 'no-cors',
@@ -213,28 +216,21 @@
                     body: JSON.stringify({ action: "delete", id: String(id) })
                 })
                 .then(function() {
-                    // 本地先過濾掉，製造極速反應
                     cloudLogs = cloudLogs.filter(function(log) { return String(log.id) !== String(id); });
                     renderLogs();
-                    setTimeout(fetchFromGoogleSheet, 1500); // 1.5秒後重新讀取雲端對賬
+                    setTimeout(fetchFromGoogleSheet, 1500);
                 });
             }
         }
 
-        // 🌟 新增：點擊 ✏️ 修改按鈕觸發
         function editLog(id, oldDetail) {
             if (!id || id === "undefined") { alert("此紀錄無法修改"); return; }
-            
-            // 彈出手機輸入框讓使用者填寫新內容
             const newDetail = prompt("請輸入修改後的內容 / 份量：", oldDetail);
-            
-            // 如果使用者撳取消，或者冇入嘢，就終止
             if (newDetail === null) return;
             const cleanDetail = newDetail.trim();
             if (!cleanDetail) return;
 
             document.getElementById('sync-status').innerText = "⏳ 正在雲端修改...";
-
             fetch(GAS_URL, {
                 method: 'POST',
                 mode: 'no-cors',
@@ -242,13 +238,12 @@
                 body: JSON.stringify({ action: "edit", id: String(id), detail: cleanDetail })
             })
             .then(function() {
-                // 本地即時更新顯示
                 cloudLogs = cloudLogs.map(function(log) {
                     if (String(log.id) === String(id)) { log.detail = cleanDetail; }
                     return log;
                 });
                 renderLogs();
-                setTimeout(fetchFromGoogleSheet, 1500); // 1.5秒後重新讀取雲端對賬
+                setTimeout(fetchFromGoogleSheet, 1500);
             });
         }
 
