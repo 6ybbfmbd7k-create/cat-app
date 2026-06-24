@@ -40,8 +40,8 @@
         .box { background: #f9fafb; margin: 0 0 12px 0; padding: 12px; border-radius: 12px; border: 1px solid #e5e7eb; }
         .time-box { background: #eff6ff; border: 1px solid #bfdbfe; }
         
-        /* 📊 圖表外殼樣式 */
-        .chart-box { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; margin-bottom: 12px; min-height: 200px; }
+        /* 📊 縮細圖表外殼，高度由原先 200px 縮減 */
+        .chart-box { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 8px 12px; margin-bottom: 12px; }
         
         .title { font-size: 14px; font-weight: bold; margin-bottom: 8px; color: #374151; }
         .flex-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
@@ -138,10 +138,8 @@
         <div id="page-poop" class="page-content">
             
             <div class="chart-box">
-                <div class="title" style="color: #78350f; display: flex; justify-content: space-between; align-items: center;">
-                    <span>📊 每日屎尿次數統計 (最近7天)</span>
-                </div>
-                <canvas id="poopChart" style="width:100%; height:180px;"></style>
+                <div class="title" style="font-size: 12px; color: #78350f; margin-bottom: 4px;">📊 每日屎尿次數統計 (最近7天)</div>
+                <canvas id="poopChart" style="width:100%; height:130px;"></canvas>
             </div>
 
             <div class="box">
@@ -195,7 +193,7 @@
         const GAS_URL = "https://script.google.com/macros/s/AKfycbxw8GYN5UFdvloq3gbD9eaT7O8mDPibIufrKPSHuOYNqWPUGwfQkiryCZE_0v1zlE9f/exec";
 
         let cloudLogs = [];
-        let myPoopChart = null; // 用來儲存圖表物件
+        let myPoopChart = null;
 
         function toggleMenu() {
             document.getElementById('sidebar').classList.toggle('active');
@@ -213,6 +211,7 @@
             toggleMenu();
         }
 
+        // 🌟 優化：只有在初始化或手動點擊「現在時間」時才真正更新輸入框，防止背後自動更新時強制拉走畫面
         function setCurrentTime() {
             const now = new Date();
             const offset = now.getTimezoneOffset() * 60000;
@@ -231,10 +230,14 @@
             return month + '/' + date + ' ' + hours + ':' + minutes;
         }
 
-        function fetchFromGoogleSheet() {
+        function fetchFromGoogleSheet(isSilent) {
             if (!GAS_URL || GAS_URL === "YOUR_GAS_URL_HERE") return;
-            document.getElementById('sync-status').className = "status-badge";
-            document.getElementById('sync-status').innerText = "🔄 正在同步雲端數據...";
+            
+            // 🌟 修正：如果是背後默默同步(isSilent)，就不更改頂部狀態文字，防止頁面跳動
+            if (!isSilent) {
+                document.getElementById('sync-status').className = "status-badge";
+                document.getElementById('sync-status').innerText = "🔄 正在同步雲端數據...";
+            }
 
             fetch(GAS_URL + "?action=read")
             .then(function(res) { return res.json(); })
@@ -249,7 +252,7 @@
 
                 renderLogs();
                 updateLatestWeight();
-                buildPoopChart(); // 🌟 當雲端有新數據時，自動計算並更新統計圖表
+                buildPoopChart();
                 
                 document.getElementById('sync-status').className = "status-badge status-online";
                 document.getElementById('sync-status').innerText = "🟢 雲端同步成功 (已連線)";
@@ -269,12 +272,10 @@
             }
         }
 
-        // 🌟 【新增：核心數據分析】計算最近7日每日的屎、尿次數並生成圖表
         function buildPoopChart() {
             const ctx = document.getElementById('poopChart');
             if (!ctx) return;
 
-            // 1. 產生最近7天的日期標籤清單 (格式: MM/DD)
             let dateLabels = [];
             for (let i = 6; i >= 0; i--) {
                 let d = new Date();
@@ -284,14 +285,12 @@
                 dateLabels.push(mStr + '/' + dStr);
             }
 
-            // 2. 初始化計數器
             let poopCounts = new Array(7).fill(0);
             let peeCounts = new Array(7).fill(0);
 
-            // 3. 掃描全部數據，只要日期穩合就加1
             cloudLogs.forEach(function(log) {
-                let logTimeClean = cleanDisplayTime(log.time); // 格式 "MM/DD HH:mm"
-                let logDate = logTimeClean.split(' ')[0];    // 拿取 "MM/DD"
+                let logTimeClean = cleanDisplayTime(log.time);
+                let logDate = logTimeClean.split(' ')[0];
 
                 let idx = dateLabels.indexOf(logDate);
                 if (idx !== -1) {
@@ -300,10 +299,8 @@
                 }
             });
 
-            // 4. 銷毀舊圖表防止重疊
             if (myPoopChart) { myPoopChart.destroy(); }
 
-            // 5. 渲染全新圖表
             myPoopChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -312,13 +309,13 @@
                         {
                             label: '便便 💩',
                             data: poopCounts,
-                            backgroundColor: '#9a3412', // 咖啡色柱體
+                            backgroundColor: '#9a3412',
                             borderRadius: 4
                         },
                         {
                             label: '尿尿 💧',
                             data: peeCounts,
-                            backgroundColor: '#3b82f6', // 藍色柱體
+                            backgroundColor: '#3b82f6',
                             borderRadius: 4
                         }
                     ]
@@ -329,11 +326,11 @@
                     scales: {
                         y: {
                             beginAtZero: true,
-                            ticks: { stepSize: 1, precision: 0 } // 只顯示整數 (1次, 2次)
+                            ticks: { stepSize: 1, precision: 0 }
                         }
                     },
                     plugins: {
-                        legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } }
+                        legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } }
                     }
                 }
             });
@@ -403,7 +400,8 @@
                 body: JSON.stringify(newData)
             })
             .then(function() {
-                setTimeout(function() { fetchFromGoogleSheet(); setCurrentTime(); }, 1200);
+                // 🌟 優化：儲存完後用 silent 模式默默重新載入，且不重複重置時間，確保畫面不滾動
+                setTimeout(function() { fetchFromGoogleSheet(true); }, 1200);
             });
         }
 
@@ -421,8 +419,8 @@
                     cloudLogs = cloudLogs.filter(function(log) { return String(log.id) !== String(id); });
                     renderLogs();
                     updateLatestWeight();
-                    buildPoopChart(); // 重新畫圖
-                    setTimeout(fetchFromGoogleSheet, 1500);
+                    buildPoopChart();
+                    setTimeout(function() { fetchFromGoogleSheet(true); }, 1500);
                 });
             }
         }
@@ -448,8 +446,8 @@
                 });
                 renderLogs();
                 updateLatestWeight();
-                buildPoopChart(); // 重新畫圖
-                setTimeout(fetchFromGoogleSheet, 1500);
+                buildPoopChart();
+                setTimeout(function() { fetchFromGoogleSheet(true); }, 1500);
             });
         }
 
@@ -489,8 +487,9 @@
             sendToGoogleSheet(dataItem);
         }
 
+        // 🌟 初始化只執行一次設定時間
         setCurrentTime();
-        fetchFromGoogleSheet();
+        fetchFromGoogleSheet(false);
     </script>
 </body>
 </html>
