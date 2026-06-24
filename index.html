@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🐱 Liz 全員同步(時間優化版)</title>
+    <title>🐱 Liz 全員同步(真實時間排序版)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
         body { background: #f9fafb; padding: 15px; display: flex; justify-content: center; }
@@ -33,7 +33,7 @@
 
     <div class="app-container">
         <div id="sync-status" class="status-badge">🔄 正在連線讀取雲端紀錄...</div>
-        <div class="header">🐱 Liz 日常紀錄 (時間優化版)</div>
+        <div class="header">🐱 Liz 日常紀錄 (時間排序修正版)</div>
 
         <div class="box time-box">
             <div class="title" style="color: #1e40af;">📅 紀錄時間設定 (預設為現在時間)</div>
@@ -112,12 +112,13 @@
             document.getElementById('global-time').value = localISOTime;
         }
 
+        // 格式化為： "MM/DD HH:mm" (補零以利正確排序)
         function getSelectedTimeStr() {
             const userTimeVal = document.getElementById('global-time').value;
             let t = userTimeVal ? new Date(userTimeVal) : new Date();
             if (isNaN(t.getTime())) { t = new Date(); }
-            const month = t.getMonth() + 1;
-            const date = t.getDate();
+            const month = String(t.getMonth() + 1).padStart(2, '0');
+            const date = String(t.getDate()).padStart(2, '0');
             const hours = String(t.getHours()).padStart(2, '0');
             const minutes = String(t.getMinutes()).padStart(2, '0');
             return month + '/' + date + ' ' + hours + ':' + minutes;
@@ -133,10 +134,12 @@
             .then(function(data) {
                 cloudLogs = data;
                 
-                // 🌟 【新增優化核心】強迫歷史紀錄根據一開初生成的唯一「id」(時間戳記) 由新到舊排序
-                // 這樣不論 Google Sheet 傳回來的順序如何，或者補入哪一天的資料，手機畫面都會最新在最頂！
+                // 🌟 【排序終極優化】直接將顯示時間清洗乾淨，然後進行字串倒序比較
+                // 這樣無論何時補入紀錄，都能真正根據「紀錄顯示的日期與時間」最新排最頂！
                 cloudLogs.sort(function(a, b) {
-                    return Number(b.id) - Number(a.id);
+                    let timeA = cleanDisplayTime(a.time);
+                    let timeB = cleanDisplayTime(b.time);
+                    return timeB.localeCompare(timeA);
                 });
 
                 renderLogs();
@@ -156,8 +159,8 @@
                 try {
                     let t = new Date(timeStr);
                     if (!isNaN(t.getTime())) {
-                        const month = t.getMonth() + 1;
-                        const date = t.getDate();
+                        const month = String(t.getMonth() + 1).padStart(2, '0');
+                        const date = String(t.getDate()).padStart(2, '0');
                         const hours = String(t.getHours()).padStart(2, '0');
                         const minutes = String(t.getMinutes()).padStart(2, '0');
                         return month + '/' + date + ' ' + hours + ':' + minutes;
