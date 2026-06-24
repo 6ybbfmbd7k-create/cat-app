@@ -7,19 +7,22 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
-        body { background: #f9fafb; padding: 15px; display: flex; justify-content: center; overflow-x: hidden; }
+        /* 🐾 底色改成暖和的淺米色 (三色貓的白底) */
+        body { background: #faf7f2; padding: 15px; display: flex; justify-content: center; overflow-x: hidden; }
         
-        .app-container { width: 100%; max-width: 400px; background: white; border-radius: 16px; border: 1px solid #f3f4f6; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05); position: relative; min-height: 600px; }
+        .app-container { width: 100%; max-width: 400px; background: white; border-radius: 16px; border: 1px solid #f1eae1; overflow: hidden; box-shadow: 0 4px 12px rgba(93,79,71,0.08); position: relative; min-height: 600px; }
         
-        .navbar { background: #fb923c; color: white; display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; font-weight: bold; font-size: 18px; position: relative; z-index: 10; }
-        .menu-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; padding: 4px; }
-        .nav-title { flex-grow: 1; text-align: center; margin-right: 24px; }
+        /* 🐾 導航欄：改為優雅的奶油色底 + 深褐字 */
+        .navbar { background: #fdf8f2; color: #3d312a; display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; font-weight: bold; font-size: 18px; position: relative; z-index: 10; border-bottom: 1px solid #f1eae1; }
+        .menu-btn { background: none; border: none; color: #e07a5f; font-size: 24px; cursor: pointer; padding: 4px; }
+        .nav-title { flex-grow: 1; text-align: center; margin-right: 24px; color: #3d312a; letter-spacing: 0.5px; }
 
-        .sidebar { position: absolute; top: 0; left: -260px; width: 260px; height: 100%; background: #2d3748; color: white; z-index: 99; transition: left 0.3s ease; padding: 20px; box-shadow: 4px 0 10px rgba(0,0,0,0.2); }
+        /* 🐾 側邊欄：改為深墨褐色背景 (三色貓的黑炭色) */
+        .sidebar { position: absolute; top: 0; left: -260px; width: 260px; height: 100%; background: #3d312a; color: white; z-index: 99; transition: left 0.3s ease; padding: 20px; box-shadow: 4px 0 10px rgba(0,0,0,0.2); }
         .sidebar.active { left: 0; }
-        .sidebar-header { font-size: 20px; font-weight: bold; margin-bottom: 24px; border-bottom: 1px solid #4a5568; padding-bottom: 10px; color: #fb923c; }
-        .menu-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: #cbd5e0; text-decoration: none; font-size: 16px; border-radius: 8px; margin-bottom: 8px; cursor: pointer; background: none; border: none; width: 100%; text-align: left; }
-        .menu-item:hover, .menu-item.active { background: #4a5568; color: white; font-weight: bold; }
+        .sidebar-header { font-size: 20px; font-weight: bold; margin-bottom: 24px; border-bottom: 1px solid #54453d; padding-bottom: 10px; color: #e07a5f; }
+        .menu-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: #d1c7bd; text-decoration: none; font-size: 16px; border-radius: 8px; margin-bottom: 8px; cursor: pointer; background: none; border: none; width: 100%; text-align: left; }
+        .menu-item:hover, .menu-item.active { background: #54453d; color: white; font-weight: bold; }
         
         .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 90; display: none; }
         .overlay.active { display: block; }
@@ -27,38 +30,46 @@
         .page-content { display: none; padding: 12px; }
         .page-content.active { display: block; }
 
-        .id-card { background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%); border: 2px solid #fdba74; border-radius: 16px; padding: 16px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(251,146,60,0.1); text-align: center; }
-        .avatar-container { width: 110px; height: 110px; background: white; border-radius: 50%; margin: 0 auto 12px auto; overflow: hidden; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; }
+        /* 🐾 身份證：融入橘、黑、白三色貓漸變層次 */
+        .id-card { background: linear-gradient(135deg, #fdf8f2 0%, #f7d6c8 100%); border: 2px solid #e07a5f; border-radius: 16px; padding: 16px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(224,122,95,0.1); text-align: center; }
+        .avatar-container { width: 110px; height: 110px; background: white; border-radius: 50%; margin: 0 auto 12px auto; overflow: hidden; border: 3px solid #e07a5f; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; }
         .avatar-container img { width: 100%; height: 100%; object-fit: cover; }
-        .id-name { font-size: 22px; font-weight: bold; color: #7c2d12; margin-bottom: 4px; }
-        .id-title { font-size: 13px; color: #9a3412; font-weight: 500; margin-bottom: 12px; letter-spacing: 1px; }
-        .id-details { display: flex; justify-content: space-around; background: rgba(255,255,255,0.6); padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.8); }
+        .id-name { font-size: 22px; font-weight: bold; color: #3d312a; margin-bottom: 4px; }
+        .id-title { font-size: 13px; color: #e07a5f; font-weight: bold; margin-bottom: 12px; letter-spacing: 1px; }
+        .id-details { display: flex; justify-content: space-around; background: rgba(255,255,255,0.7); padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.9); }
         .id-stat { text-align: center; }
-        .id-stat-label { font-size: 11px; color: #c2410c; margin-bottom: 2px; }
-        .id-stat-val { font-size: 15px; font-weight: bold; color: #431407; }
+        .id-stat-label { font-size: 11px; color: #8e7d73; margin-bottom: 2px; }
+        .id-stat-val { font-size: 15px; font-weight: bold; color: #3d312a; }
 
-        .box { background: #f9fafb; margin: 0 0 12px 0; padding: 12px; border-radius: 12px; border: 1px solid #e5e7eb; }
-        .time-box { background: #eff6ff; border: 1px solid #bfdbfe; padding: 8px 12px; margin-bottom: 10px; }
+        .box { background: #fdfbf7; margin: 0 0 12px 0; padding: 12px; border-radius: 12px; border: 1px solid #eae3d8; }
+        /* 🐾 時間區：改為淡雅柔和的溫暖米橘色調 */
+        .time-box { background: #fdf3ee; border: 1px solid #f5dacb; padding: 8px 12px; margin-bottom: 10px; border-radius: 12px; }
         
-        .chart-box { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 6px 10px; margin-bottom: 10px; }
+        .chart-box { background: white; border: 1px solid #eae3d8; border-radius: 12px; padding: 6px 10px; margin-bottom: 10px; }
         
-        .title { font-size: 14px; font-weight: bold; margin-bottom: 8px; color: #374151; }
-        .inline-title { font-size: 12px; font-weight: bold; color: #1e40af; margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
+        .title { font-size: 14px; font-weight: bold; margin-bottom: 8px; color: #3d312a; }
+        .inline-title { font-size: 12px; font-weight: bold; color: #e07a5f; margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
         .flex-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
-        .input-text, .select-box, .input-time { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; background: white; }
-        .input-time { color: #1e40af; font-weight: bold; padding: 6px 8px; }
-        .btn-submit { width: 100%; padding: 12px; border: none; border-radius: 8px; color: white; font-weight: bold; font-size: 15px; cursor: pointer; }
-        .btn-feed { background: #fb923c; }
-        .btn-poop { background: #78350f; }
-        .btn-weight { background: #e11d48; }
-        .btn-now { background: #3b82f6; color: white; padding: 6px 12px; border: none; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; white-space: nowrap; }
-        .history-section { border-top: 1px solid #f3f4f6; padding: 12px 0; }
+        .input-text, .select-box, .input-time { width: 100%; padding: 10px; border: 1px solid #dcd1c4; border-radius: 8px; font-size: 14px; background: white; color: #3d312a; }
+        .input-time { color: #e07a5f; font-weight: bold; padding: 6px 8px; border: 1px solid #f5dacb; }
+        
+        /* 🐾 按鈕群：全面換成溫柔溫馨的三色貓主題色 */
+        .btn-submit { width: 100%; padding: 12px; border: none; border-radius: 8px; color: white; font-weight: bold; font-size: 15px; cursor: pointer; transition: opacity 0.2s; }
+        .btn-submit:active { opacity: 0.9; }
+        .btn-feed { background: #e07a5f; } /* 暖橘 */
+        .btn-poop { background: #6b584c; } /* 深褐 */
+        .btn-weight { background: #b56576; } /* 帶點粉紅感的深豆沙 (體重) */
+        .btn-now { background: #3d312a; color: white; padding: 6px 12px; border: none; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; white-space: nowrap; }
+        
+        .history-section { border-top: 1px solid #eae3d8; padding: 12px 0; }
         .log-list { max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
-        .log-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px 12px; border-radius: 12px; border: 1px solid #f3f4f6; font-size: 13px; }
+        .log-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px 12px; border-radius: 12px; border: 1px solid #f1eae1; font-size: 13px; }
         .action-btns { display: flex; gap: 6px; }
         .btn-action { background: none; border: none; font-size: 14px; cursor: pointer; padding: 4px; }
-        .status-badge { text-align: center; font-size: 11px; color: #4b5563; padding: 6px; background: #fee2e2; font-weight: bold; }
-        .status-online { background: #dcfce7; color: #166534; }
+        
+        /* 🐾 狀態欄：配合三色貓色系 */
+        .status-badge { text-align: center; font-size: 11px; color: #6b584c; padding: 6px; background: #f5dacb; font-weight: bold; }
+        .status-online { background: #e6f4ea; color: #137333; }
     </style>
 </head>
 <body>
@@ -85,7 +96,7 @@
         <div id="page-home" class="page-content active">
             <div class="id-card">
                 <div class="avatar-container">
-                    <img src="Liz.jpg" alt="Liz">
+                    <img src="Liz.jpg" alt="Liz" onerror="this.src='https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=200&auto=format&fit=crop&q=80'">
                 </div>
                 <div class="id-name">Liz 🐱</div>
                 <div class="id-title">✨ 主子健康通行證 ✨</div>
@@ -96,19 +107,19 @@
                     </div>
                     <div class="id-stat">
                         <div class="id-stat-label">最新狀態</div>
-                        <div class="id-stat-val" style="color: #166534;">精靈活潑</div>
+                        <div class="id-stat-val" style="color: #b56576;">精靈活潑</div>
                     </div>
                 </div>
             </div>
             
-            <p style="text-align: center; color: #9ca3af; font-size: 13px; margin-top: 40px;">💡 點擊左上角 ☰ 即可切換到各個紀錄頁面</p>
+            <p style="text-align: center; color: #a19285; font-size: 13px; margin-top: 40px;">💡 點擊左上角 ☰ 即可切換到各個紀錄頁面</p>
         </div>
 
         <div id="page-feed" class="page-content">
             <div class="chart-box">
-                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: bold; color: #c2410c; margin-bottom: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: bold; color: #e07a5f; margin-bottom: 4px;">
                     <span>📊 7日餵食份量趨勢</span>
-                    <div style="font-size: 10px;"><span style="color:#fb923c;">🟠乾</span> <span style="color:#22c55e;">🟢濕</span> <span style="color:#eab308;">🟡零</span> <span style="color:#3b82f6;">🔵水</span></div>
+                    <div style="font-size: 10px;"><span style="color:#e07a5f;">🟠乾</span> <span style="color:#22c55e;">🟢濕</span> <span style="color:#eab308;">🟡零</span> <span style="color:#3b82f6;">🔵水</span></div>
                 </div>
                 <div style="width: 100%; height: 65px; position: relative;">
                     <canvas id="feedChart"></canvas>
@@ -140,18 +151,18 @@
             </div>
 
             <div class="history-section">
-                <div class="title" style="color: #4b5563;">📊 餵食歷史明細</div>
+                <div class="title" style="color: #6b584c;">📊 餵食歷史明細</div>
                 <div class="log-list" id="feed-log-area">
-                    <p style="text-align:center; color:#9ca3af; padding:15px; font-size:13px;">正在載入餵食數據...</p>
+                    <p style="text-align:center; color:#a19285; padding:15px; font-size:13px;">正在載入餵食數據...</p>
                 </div>
             </div>
         </div>
 
         <div id="page-poop" class="page-content">
             <div class="chart-box">
-                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: bold; color: #78350f; margin-bottom: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: bold; color: #6b584c; margin-bottom: 4px;">
                     <span>📊 7日屎尿趨勢</span>
-                    <div><span style="color:#9a3412;">💩 便便</span> | <span style="color:#3b82f6;">💧 尿尿</span></div>
+                    <div><span style="color:#6b584c;">💩 便便</span> | <span style="color:#3b82f6;">💧 尿尿</span></div>
                 </div>
                 <div style="width: 100%; height: 65px; position: relative;">
                     <canvas id="poopChart"></canvas>
@@ -185,17 +196,17 @@
             </div>
 
             <div class="history-section">
-                <div class="title" style="color: #4b5563;">📊 鏟屎歷史明細</div>
+                <div class="title" style="color: #6b584c;">📊 鏟屎歷史明細</div>
                 <div class="log-list" id="poop-log-area">
-                    <p style="text-align:center; color:#9ca3af; padding:15px; font-size:13px;">正在載入鏟屎數據...</p>
+                    <p style="text-align:center; color:#a19285; padding:15px; font-size:13px;">正在載入鏟屎數據...</p>
                 </div>
             </div>
         </div>
 
         <div id="page-weight" class="page-content">
             <div class="chart-box" style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
-                <div style="font-size: 11px; color: #e11d48; white-space: nowrap; font-weight: bold;">
-                    7日體重<br><span style="color:#e11d48;">📈 kg</span>
+                <div style="font-size: 11px; color: #b56576; white-space: nowrap; font-weight: bold;">
+                    7日體重<br><span style="color:#b56576;">📈 kg</span>
                 </div>
                 <div style="flex-grow: 1; height: 50px; position: relative;">
                     <canvas id="weightChart"></canvas>
@@ -215,16 +226,16 @@
                 <form onsubmit="addWeightLog(event)">
                     <div class="flex-row">
                         <input type="number" step="0.01" id="cat-weight" placeholder="輸入體重 (例如: 4.55)" class="input-text" required>
-                        <span style="font-weight: bold; color: #4b5563; padding-right: 4px;">kg</span>
+                        <span style="font-weight: bold; color: #6b584c; padding-right: 4px;">kg</span>
                     </div>
                     <button type="submit" class="btn-submit btn-weight">儲存體重 ⚖️</button>
                 </form>
             </div>
 
             <div class="history-section">
-                <div class="title" style="color: #4b5563;">📊 體重歷史明細</div>
+                <div class="title" style="color: #6b584c;">📊 體重歷史明細</div>
                 <div class="log-list" id="weight-log-area">
-                    <p style="text-align:center; color:#9ca3af; padding:15px; font-size:13px;">正在載入體重數據...</p>
+                    <p style="text-align:center; color:#a19285; padding:15px; font-size:13px;">正在載入體重數據...</p>
                 </div>
             </div>
         </div>
@@ -232,14 +243,15 @@
         <div id="page-medical" class="page-content">
             <div class="box" style="text-align: center; padding: 40px 20px;">
                 <span style="font-size: 48px;">🩺</span>
-                <h3 style="margin-top: 15px; color: #4b5563;">醫療紀錄功能</h3>
-                <p style="color: #9ca3af; font-size: 14px; margin-top: 8px;">（此功能已成功預留，暫時不需製作內容）</p>
+                <h3 style="margin-top: 15px; color: #6b584c;">醫療紀錄功能</h3>
+                <p style="color: #a19285; font-size: 14px; margin-top: 8px;">（此功能已成功預留，暫時不需製作內容）</p>
             </div>
         </div>
 
     </div>
 
     <script>
+        // 🌟 請記得替換回你的雲端網址
         const GAS_URL = "https://script.google.com/macros/s/AKfycbxw8GYN5UFdvloq3gbD9eaT7O8mDPibIufrKPSHuOYNqWPUGwfQkiryCZE_0v1zlE9f/exec";
 
         let cloudLogs = [];
@@ -252,7 +264,6 @@
             document.getElementById('overlay').classList.toggle('active');
         }
 
-        // 輔助函數：從帶有單位的文字中提取純數字（例如 "40g" -> 40, "50ml" -> 50）
         function extractNumber(str) {
             if (!str) return 0;
             let matched = String(str).match(/[\d.]+/);
@@ -326,7 +337,7 @@
             })
             .catch(function(err) {
                 console.error("讀取失敗:", err);
-                document.getElementById('sync-status').innerText = "❌ 雲端讀取失敗，請重新整理網頁";
+                document.getElementById('sync-status').innerText = "❌ 雲端讀取失敗，請重新整理網網頁";
             });
         }
 
@@ -349,13 +360,11 @@
                 dateLabels.push(mStr + '/' + dStr);
             }
 
-            // 餵食數據陣列
             let dryFoodCounts = new Array(7).fill(0);
             let wetFoodCounts = new Array(7).fill(0);
             let snackCounts = new Array(7).fill(0);
             let waterCounts = new Array(7).fill(0);
 
-            // 鏟屎體重數據陣列
             let poopCounts = new Array(7).fill(0);
             let peeCounts = new Array(7).fill(0);
             let weightValues = new Array(7).fill(null);
@@ -366,13 +375,11 @@
 
                 let idx = dateLabels.indexOf(logDate);
                 if (idx !== -1) {
-                    // 🌟 統計餵食份量 (自動抽取純數字累加)
                     if (log.type === "乾糧") { dryFoodCounts[idx] += extractNumber(log.detail); }
                     if (log.type === "濕糧") { wetFoodCounts[idx] += extractNumber(log.detail); }
                     if (log.type === "零食") { snackCounts[idx] += extractNumber(log.detail); }
                     if (log.type === "飲水") { waterCounts[idx] += extractNumber(log.detail); }
 
-                    // 統計鏟屎體重
                     if (log.type === "便便 💩") { poopCounts[idx]++; }
                     if (log.type === "尿尿 💧") { peeCounts[idx]++; }
                     if (log.type === "體重 ⚖️") {
@@ -392,7 +399,6 @@
                 if (weightValues[i] === null && lastKnownWeight !== null) { weightValues[i] = lastKnownWeight; }
             }
 
-            // 🌟 1. 渲染新增的餵食疊加柱狀圖
             const ctxFeed = document.getElementById('feedChart');
             if (ctxFeed) {
                 if (myFeedChart) { myFeedChart.destroy(); }
@@ -401,10 +407,10 @@
                     data: {
                         labels: dateLabels,
                         datasets: [
-                            { label: '乾糧', data: dryFoodCounts, backgroundColor: '#fb923c', borderRadius: 2 },
-                            { label: '濕糧', data: wetFoodCounts, backgroundColor: '#22c55e', borderRadius: 2 },
-                            { label: '零食', data: snackCounts, backgroundColor: '#eab308', borderRadius: 2 },
-                            { label: '飲水', data: waterCounts, backgroundColor: '#3b82f6', borderRadius: 2 }
+                            { label: '乾糧', data: dryFoodCounts, backgroundColor: '#e07a5f', borderRadius: 2 },
+                            { label: '濕糧', data: wetFoodCounts, backgroundColor: '#81c784', borderRadius: 2 },
+                            { label: '零食', data: snackCounts, backgroundColor: '#f2cc8f', borderRadius: 2 },
+                            { label: '飲水', data: waterCounts, backgroundColor: '#64b5f6', borderRadius: 2 }
                         ]
                     },
                     options: {
@@ -416,7 +422,6 @@
                 });
             }
 
-            // 2. 渲染放大版鏟屎柱狀圖
             const ctxPoop = document.getElementById('poopChart');
             if (ctxPoop) {
                 if (myPoopChart) { myPoopChart.destroy(); }
@@ -425,8 +430,8 @@
                     data: {
                         labels: dateLabels,
                         datasets: [
-                            { label: '便便', data: poopCounts, backgroundColor: '#9a3412', borderRadius: 3 },
-                            { label: '尿尿', data: peeCounts, backgroundColor: '#3b82f6', borderRadius: 3 }
+                            { label: '便便', data: poopCounts, backgroundColor: '#6b584c', borderRadius: 3 },
+                            { label: '尿尿', data: peeCounts, backgroundColor: '#64b5f6', borderRadius: 3 }
                         ]
                     },
                     options: {
@@ -438,7 +443,6 @@
                 });
             }
 
-            // 3. 渲染體重折線圖
             const ctxWeight = document.getElementById('weightChart');
             if (ctxWeight) {
                 if (myWeightChart) { myWeightChart.destroy(); }
@@ -449,7 +453,7 @@
                         datasets: [{
                             label: '體重',
                             data: weightValues,
-                            borderColor: '#e11d48',
+                            borderColor: '#b56576',
                             borderWidth: 2,
                             pointRadius: 2,
                             fill: false
@@ -493,29 +497,29 @@
             const weightLogs = cloudLogs.filter(log => log.type === "體重 ⚖️");
 
             if (feedLogs.length === 0) {
-                feedArea.innerHTML = '<p style="text-align:center; color:#9ca3af; padding:15px; font-size:13px;">未有任何餵食紀錄</p>';
+                feedArea.innerHTML = '<p style="text-align:center; color:#a19285; padding:15px; font-size:13px;">未有任何餵食紀錄</p>';
             } else { feedArea.innerHTML = feedLogs.map(logHtmlHtml).join(""); }
 
             if (poopLogs.length === 0) {
-                poopArea.innerHTML = '<p style="text-align:center; color:#9ca3af; padding:15px; font-size:13px;">未有任何鏟屎紀錄</p>';
+                poopArea.innerHTML = '<p style="text-align:center; color:#a19285; padding:15px; font-size:13px;">未有任何鏟屎紀錄</p>';
             } else { poopArea.innerHTML = poopLogs.map(logHtmlHtml).join(""); }
 
             if (weightLogs.length === 0) {
-                weightArea.innerHTML = '<p style="text-align:center; color:#9ca3af; padding:15px; font-size:13px;">未有任何體重紀錄</p>';
+                weightArea.innerHTML = '<p style="text-align:center; color:#a19285; padding:15px; font-size:13px;">未有任何體重紀錄</p>';
             } else { weightArea.innerHTML = weightLogs.map(logHtmlHtml).join(""); }
         }
 
         function logHtmlHtml(e) {
-            let labelColor = "#fb923c";
-            if (e.type === "便便 💩" || e.type === "尿尿 💧") labelColor = "#78350f";
-            if (e.type === "體重 ⚖️") labelColor = "#e11d48";
+            let labelColor = "#e07a5f";
+            if (e.type === "便便 💩" || e.type === "尿尿 💧") labelColor = "#6b584c";
+            if (e.type === "體重 ⚖️") labelColor = "#b56576";
 
             let formattedTime = cleanDisplayTime(e.time);
 
             return '<div class="log-item">' +
-                '<div><b style="color:' + labelColor + ';">' + e.type + '</b><br><small style="color:#9ca3af;">' + formattedTime + '</small></div>' +
+                '<div><b style="color:' + labelColor + ';">' + e.type + '</b><br><small style="color:#a19285;">' + formattedTime + '</small></div>' +
                 '<div style="display:flex; align-items:center; gap:10px;">' +
-                '<span style="font-weight:bold; color:#374151;">' + e.detail + '</span>' +
+                '<span style="font-weight:bold; color:#3d312a;">' + e.detail + '</span>' +
                 '<div class="action-btns">' +
                 '<button class="btn-action" onclick="editLog(\'' + e.id + '\', \'' + e.detail + '\')">✏️</button>' +
                 '<button class="btn-action" onclick="deleteLog(\'' + e.id + '\')">🗑️</button>' +
